@@ -35,6 +35,7 @@ export function NovaRecorrenciaPage() {
     Valor: '',
     DataInicio: new Date().toISOString().split('T')[0],
     QtdeRecorrente: '1',
+    IntervaloEmDias: '1',
     IdTipoRecorrencia: '',
   });
 
@@ -186,6 +187,23 @@ export function NovaRecorrenciaPage() {
                 required
                 className="mt-1"
               />
+            </div>
+
+            {/* Intervalo em Dias */}
+            <div>
+              <Label>Intervalo em Dias *</Label>
+              <Input
+                type="number"
+                min="1"
+                value={formData.IntervaloEmDias}
+                onChange={(e) =>
+                  handleChange('IntervaloEmDias', e.target.value)
+                }
+                placeholder="Ex: 1 (diário), 7 (semanal), 30 (mensal)"
+                required
+                className="mt-1"
+              />
+              <p className="text-xs text-gray-500 mt-1">Número de dias entre cada ocorrência, baseado na data de início</p>
             </div>
 
             {/* Tipo Recorrência */}

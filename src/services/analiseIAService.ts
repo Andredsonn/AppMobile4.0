@@ -2,7 +2,7 @@ import { apiRequest } from './api';
 
 export interface AnaliseIARequest {
   idProjecao: number;
-  contexto: string;
+  contexto?: string;
 }
 
 export interface AnaliseIAResponse {
@@ -15,9 +15,10 @@ export interface AnaliseIAResponse {
 }
 
 export const analiseIAService = {
-  async analisarProjecao(projecaoId: number): Promise<AnaliseIAResponse> {
+  async analisarProjecao(projecaoId: number, contexto?: string): Promise<AnaliseIAResponse> {
     return apiRequest<AnaliseIAResponse>(`/Projecoes/analisar-ia/${projecaoId}`, {
       method: 'POST',
+      body: JSON.stringify({ idProjecao: projecaoId, contexto }),
     });
   },
 };

@@ -39,7 +39,8 @@ export function AnaliseIAProjecao({ projecaoId, titulo, valorPrevisto }: Analise
     try {
       setLoading(true);
       setAnalise(null);
-      const resultado = await analiseIAService.analisarProjecao(projecaoId);
+      const contexto = `Título: ${titulo}. Valor Previsto: R$ ${valorPrevisto.toFixed(2)}.`;
+      const resultado = await analiseIAService.analisarProjecao(projecaoId, contexto);
       setAnalise(resultado);
     } catch (error: any) {
       toast.error('Erro ao analisar projeção com IA');
@@ -91,7 +92,7 @@ export function AnaliseIAProjecao({ projecaoId, titulo, valorPrevisto }: Analise
         className="border-purple-300 text-purple-700 hover:bg-purple-50 hover:text-purple-800"
       >
         <Sparkles className="w-4 h-4 mr-1.5" />
-        Analisar com IA
+        Analisar com Midas
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
@@ -99,10 +100,10 @@ export function AnaliseIAProjecao({ projecaoId, titulo, valorPrevisto }: Analise
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-xl">
               <Brain className="w-6 h-6 text-purple-600" />
-              Análise de IA — {titulo}
+              Análise Midas — {titulo}
             </DialogTitle>
             <DialogDescription>
-              Análise gerada por inteligência artificial com base no seu histórico financeiro
+              Análise gerada pelo Midas com base no seu histórico financeiro
             </DialogDescription>
           </DialogHeader>
 
@@ -110,7 +111,7 @@ export function AnaliseIAProjecao({ projecaoId, titulo, valorPrevisto }: Analise
             <div className="flex flex-col items-center justify-center py-12 space-y-4">
               <Loader2 className="w-10 h-10 animate-spin text-purple-600" />
               <p className="text-gray-600 font-medium">Analisando projeção...</p>
-              <p className="text-sm text-gray-400">A IA está examinando seu histórico financeiro</p>
+              <p className="text-sm text-gray-400">Midas está examinando seu histórico financeiro</p>
             </div>
           )}
 
@@ -179,7 +180,7 @@ export function AnaliseIAProjecao({ projecaoId, titulo, valorPrevisto }: Analise
                 <p>Analisado em: {new Date(analise.dataAnalise).toLocaleString('pt-BR')}</p>
                 <p className="flex items-center gap-1">
                   <Lightbulb className="w-3 h-3" />
-                  A IA pode cometer erros. Use como referência.
+                  Midas pode cometer erros. Use como referência.
                 </p>
               </div>
             </div>

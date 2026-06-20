@@ -17,6 +17,7 @@ import {
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../components/ui/alert-dialog';
 import { Plus, Trash2, Filter, Edit2, Sparkles } from 'lucide-react';
 import { projecaoService } from '../../services/projecaoService';
+import { analiseIAService } from '../../services/analiseIAService';
 import type { Projecao } from '../../types';
 import { toast } from 'sonner';
 import { useAuth } from '../../context/AuthContext';
@@ -42,6 +43,9 @@ export function ProjecoesPage() {
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [filterYear, setFilterYear] = useState('');
   const [filterMonth, setFilterMonth] = useState('');
+  const [suggestion, setSuggestion] = useState<string | null>(null);
+  const [suggestionLoading, setSuggestionLoading] = useState(false);
+  const [suggestionError, setSuggestionError] = useState<string | null>(null);
 
   useEffect(() => {
     loadProjecoes();
@@ -50,6 +54,39 @@ export function ProjecoesPage() {
   useEffect(() => {
     applyFilters();
   }, [projecoes, filterYear, filterMonth]);
+
+  useEffect(() => {
+    if (filteredProjecoes.length > 0 && !suggestion && !suggestionLoading) {
+      loadMidasSuggestion();
+    }
+  }, [filteredProjecoes]);
+
+  const getSuggestedProjecao = () => {
+    if (filteredProjecoes.length === 0) return null;
+    return filteredProjecoes.reduce((best, current) => {
+      return current.valorPrevisto > best.valorPrevisto ? current : best;
+    }, filteredProjecoes[0]);
+  };
+
+  const loadMidasSuggestion = async () => {
+    const proj = getSuggestedProjecao();
+    if (!proj) return;
+
+    setSuggestionLoading(true);
+    setSuggestionError(null);
+    try {
+      const contexto = `Resumo da projeção: ${proj.titulo}. Valor previsto: R$ ${proj.valorPrevisto.toFixed(2)}. Data referência: ${formatDate(proj.dataReferencia)}.`;
+      const resultado = await analiseIAService.analisarProjecao(proj.idProjecao, contexto);
+      const snippet = resultado.analise.length > 260 ? `${resultado.analise.slice(0, 260).trim()}...` : resultado.analise;
+      setSuggestion(`A IA recomenda atenção à projeção "${proj.titulo}". ${snippet}`);
+    } catch (error: any) {
+      console.error(error);
+      setSuggestionError('Não foi possível gerar a sugestão no momento. Tente novamente.');
+      setSuggestion(null);
+    } finally {
+      setSuggestionLoading(false);
+    }
+  };
 
   const loadProjecoes = async () => {
     try {
@@ -178,6 +215,40 @@ export function ProjecoesPage() {
           </div>
         </Card>
 
+        {/* Sugestão do Midas */}
+        <Card className="p-4 bg-purple-50 border-purple-200">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <div className="flex items-center gap-2 text-purple-700 font-semibold">
+                <Sparkles className="w-5 h-5" />
+                Sugestão do Midas
+              </div>
+              <p className="mt-2 text-sm text-slate-600">
+                Receba uma recomendação rápida baseada na projeção com maior impacto.
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={loadMidasSuggestion}
+              disabled={suggestionLoading || filteredProjecoes.length === 0}
+            >
+              {suggestionLoading ? 'Atualizando...' : 'Gerar sugestão'}
+            </Button>
+          </div>
+          <div className="mt-4 rounded-2xl border border-purple-200 bg-white p-4 min-h-[110px]">
+            {suggestionLoading ? (
+              <p className="text-sm text-gray-600">Gerando sugestão da IA...</p>
+            ) : suggestionError ? (
+              <p className="text-sm text-red-600">{suggestionError}</p>
+            ) : suggestion ? (
+              <p className="text-sm text-gray-700">{suggestion}</p>
+            ) : (
+              <p className="text-sm text-gray-500">Não há projeções suficientes para gerar uma sugestão.</p>
+            )}
+          </div>
+        </Card>
+
         {/* Tabela */}
         <Card>
           <Table>
@@ -195,7 +266,7 @@ export function ProjecoesPage() {
             <TableBody>
               {filteredProjecoes.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                  <TableCell colSpan={6} className="text-center py-8 text-gray-500">
                     Nenhuma projeção encontrada
                   </TableCell>
                 </TableRow>
@@ -215,12 +286,13 @@ export function ProjecoesPage() {
                       />
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button 
-                              className="p-2 text-[#FFD700] hover:bg-[#FFD700] hover:text-[#1a1a1a] rounded-lg transition-all"
-                              variant="ghost" 
-                              size="sm" 
-                              disabled={!canManage}
-                              onClick={() => setEditData(proj)}>
+                      <Button
+                        className="p-2 text-[#FFD700] hover:bg-[#FFD700] hover:text-[#1a1a1a] rounded-lg transition-all"
+                        variant="ghost"
+                        size="sm"
+                        disabled={!canManage}
+                        onClick={() => setEditData(proj)}
+                      >
                         <Edit2 className="w-4 h-4 text" />
                       </Button>
                       <Button variant="ghost" size="sm" className={canManage ? '' : 'hidden'} onClick={() => setDeleteId(proj.idProjecao)}>
@@ -273,7 +345,6 @@ export function ProjecoesPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-
 
         {/* Delete Dialog */}
         <AlertDialog open={deleteId !== null} onOpenChange={open => { if (!open) setDeleteId(null); }}>

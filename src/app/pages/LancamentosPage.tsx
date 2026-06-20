@@ -6,6 +6,8 @@ import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
+import { ExcelImportModal } from '../../components/ExcelImportModal';
+import { ExcelLancamento } from '../../services/excelService';
 import {
   Table,
   TableBody,
@@ -40,7 +42,6 @@ import { useAuth } from '../../context/AuthContext';
 import { canManageModule, isCompanyAdmin } from '../../utils/permissions';
 import { recorrenciaService } from '../../services/recorrenciaService';
 import type { Recorrencia } from '../../types';
-import { Link } from 'react-router';
 
 export function LancamentosPage() {
   const { user } = useAuth();
@@ -54,6 +55,7 @@ export function LancamentosPage() {
   const [filterYear, setFilterYear] = useState('');
   const [filterMonth, setFilterMonth] = useState('');
   const [recorrencias, setRecorrencias] = useState<Recorrencia[]>([]);
+  const [showExcelImport, setShowExcelImport] = useState(false);
 
   useEffect(() => {
     loadLancamentos();
@@ -137,6 +139,83 @@ export function LancamentosPage() {
     }
   };
 
+  const downloadTemplateExcel = async () => {
+    try {
+      const XLSX = await import('xlsx');
+      
+      // Criar dados de exemplo
+      const templateData = [
+        {
+          Data: '2026-06-19',
+          'Descrição': 'Exemplo de receita',
+          Valor: 1000.00,
+          Tipo: 'receita',
+          Categoria: 'Vendas',
+          Responsável: user?.nomeUsuario || 'Usuário'
+        },
+        {
+          Data: '2026-06-20',
+          'Descrição': 'Exemplo de despesa',
+          Valor: 250.50,
+          Tipo: 'despesa',
+          Categoria: 'Fornecedor',
+          Responsável: user?.nomeUsuario || 'Usuário'
+        }
+      ];
+
+      const workbook = XLSX.utils.book_new();
+      const worksheet = XLSX.utils.json_to_sheet(templateData);
+      
+      // Configurar largura das colunas
+      const columnWidths = [
+        { wch: 12 }, // Data
+        { wch: 25 }, // Descrição
+        { wch: 12 }, // Valor
+        { wch: 12 }, // Tipo
+        { wch: 15 }, // Categoria
+        { wch: 20 }  // Responsável
+      ];
+      worksheet['!cols'] = columnWidths;
+
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Lançamentos');
+      XLSX.writeFile(workbook, 'template_lancamentos.xlsx');
+      
+      toast.success('Template baixado com sucesso!');
+    } catch (error) {
+      toast.error('Erro ao baixar template');
+      console.error(error);
+    }
+  };
+
+  const handleExcelImport = async (excelLancamentos: ExcelLancamento[]) => {
+    try {
+      const createdLancamentos: Lancamento[] = [];
+      
+      for (const excelLanc of excelLancamentos) {
+        const newLanc: any = {
+          descricaoLancamento: excelLanc.DescricaoLancamento,
+          valor: excelLanc.Valor,
+          data: excelLanc.Data,
+          tipoLancamento: excelLanc.TipoLancamento === 'receita' ? 'Receita' : 'Despesa',
+          categoria: excelLanc.Categoria || 'Importado',
+          responsavel: excelLanc.Responsavel || user?.nomeUsuario,
+          idEmpresa: user?.idEmpresa || 1,
+        };
+
+        const created = await lancamentoService.create(newLanc);
+        createdLancamentos.push(created);
+      }
+
+      setLancamentos(prev => [...prev, ...createdLancamentos]);
+      toast.success(`${createdLancamentos.length} lançamentos importados com sucesso!`);
+      await loadLancamentos();
+    } catch (error: any) {
+      toast.error('Erro ao importar lançamentos');
+      console.error(error);
+      throw error;
+    }
+  };
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
@@ -171,12 +250,32 @@ export function LancamentosPage() {
             <h1 className="text-3xl font-bold text-gray-900">Lançamentos</h1>
             <p className="text-gray-600 mt-1">Gerencie todas as suas movimentações financeiras</p>
           </div>
-          <Link to="/lancamentos/novo" className={canManage ? '' : 'hidden'}>
-            <Button className="bg-[#FFC107] hover:bg-[#FFB300] text-black font-medium">
-              <Plus className="w-4 h-4 mr-2" />
-              Novo Lançamento
-            </Button>
-          </Link>
+          <div className="flex gap-2">
+            {canManage && (
+              <>
+                <Button 
+                  onClick={() => downloadTemplateExcel()}
+                  className="bg-green-600 hover:bg-green-700 text-white font-medium"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Baixar Template
+                </Button>
+                <Button 
+                  onClick={() => setShowExcelImport(true)}
+                  className="bg-[#4B0012] hover:bg-[#5d0825] text-white font-medium"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Importar Excel
+                </Button>
+              </>
+            )}
+            <Link to="/lancamentos/novo" className={canManage ? '' : 'hidden'}>
+              <Button className="bg-[#FFC107] hover:bg-[#FFB300] text-black font-medium">
+                <Plus className="w-4 h-4 mr-2" />
+                Adicionar Lançamento
+              </Button>
+            </Link>
+          </div>
         </div>
 
         {/* Recorrências summary */}
@@ -387,6 +486,13 @@ export function LancamentosPage() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Excel Import Modal */}
+        <ExcelImportModal 
+          isOpen={showExcelImport}
+          onClose={() => setShowExcelImport(false)}
+          onImport={handleExcelImport}
+        />
       </div>
     </Layout>
   );

@@ -4,10 +4,63 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { createProxyMiddleware } from 'http-proxy-middleware';
 import dotenv from 'dotenv';
+import axios from 'axios';
+import { GoogleAuth, JWT } from 'google-auth-library';
+
 
 dotenv.config();
 
 const ALPHA_VANTAGE_API_KEY = process.env.ALPHA_VANTAGE_API_KEY;
+const GOOGLE_GENERATIVE_API_KEY = process.env.GOOGLE_GENERATIVE_API_KEY;
+const GOOGLE_SERVICE_ACCOUNT_JSON = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
+const GOOGLE_SERVICE_ACCOUNT_KEYFILE = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+
+let googleServiceAccountCredentials = null;
+if (GOOGLE_SERVICE_ACCOUNT_JSON) {
+  try {
+    googleServiceAccountCredentials = JSON.parse(GOOGLE_SERVICE_ACCOUNT_JSON.replace(/\\n/g, '\n'));
+  } catch (error) {
+    console.error('Invalid GOOGLE_SERVICE_ACCOUNT_JSON:', error);
+  }
+}
+
+const googleAuth = new GoogleAuth({
+  scopes: [
+    'https://www.googleapis.com/auth/cloud-platform',
+    'https://www.googleapis.com/auth/generative-language',
+  ],
+});
+
+// Simple in-memory metrics for generative model usage and fallbacks
+const generativeMetrics = {
+  totalAttempts: 0,
+  attempts: {},
+  fallbacks: {},
+  quotaErrors: {},
+};
+
+async function getGoogleGenerativeAccessToken() {
+  if (googleServiceAccountCredentials) {
+    const client = new JWT({
+      email: googleServiceAccountCredentials.client_email,
+      key: googleServiceAccountCredentials.private_key,
+      scopes: [
+        'https://www.googleapis.com/auth/cloud-platform',
+        'https://www.googleapis.com/auth/generative-language',
+      ],
+    });
+    const response = await client.authorize();
+    return response?.access_token ?? null;
+  }
+
+  if (GOOGLE_SERVICE_ACCOUNT_KEYFILE) {
+    const client = await googleAuth.getClient();
+    const accessToken = await client.getAccessToken();
+    return typeof accessToken === 'string' ? accessToken : accessToken?.token ?? null;
+  }
+
+  return null;
+}
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -28,6 +81,101 @@ app.post('/api/demo-auth', (req, res) => {
   }
   return res.status(401).json({ message: 'Invalid credentials' })
 })
+
+const apiTarget = process.env.API_PROXY_TARGET || process.env.VITE_API_BASE_URL;
+const useLocalAuth = !apiTarget;
+
+console.log('API_PROXY_TARGET:', process.env.API_PROXY_TARGET || '(not set)');
+console.log('VITE_API_BASE_URL:', process.env.VITE_API_BASE_URL || '(not set)');
+console.log('Using local auth:', useLocalAuth ? 'yes' : 'no, forwarding /api to remote backend');
+
+if (useLocalAuth) {
+  // In-memory storage for registered emails (demo)
+  const registeredEmails = new Set()
+  const registeredUsernames = new Set()
+
+  app.post('/api/Usuario/Autenticar', (req, res) => {
+    const { nomeUsuario, PasswordString } = req.body || {}
+    if (nomeUsuario === DEMO_USER && PasswordString === DEMO_PASS) {
+      return res.json({
+        usuario: {
+          id: 1,
+          IdUsuario: 1,
+          nomeUsuario: DEMO_USER,
+          NomeUsuario: DEMO_USER,
+          sobrenome: 'Demo',
+          emailUsuario: 'admin@demo.com',
+          telefone: '+55 11 99999-9999',
+          IdEmpresa: 1,
+          idEmpresa: 1,
+          perfil: 'Administrador',
+          Perfil: 'Administrador',
+        },
+        token: 'demo-token',
+      })
+    }
+    if (registeredUsernames.has(nomeUsuario)) {
+      return res.json({
+        usuario: {
+          id: 2,
+          IdUsuario: 2,
+          nomeUsuario: nomeUsuario,
+          NomeUsuario: nomeUsuario,
+          sobrenome: 'User',
+          emailUsuario: Array.from(registeredEmails).find(e => e.includes(nomeUsuario)) || `${nomeUsuario}@demo.com`,
+          telefone: '+55 11 99999-9999',
+          IdEmpresa: 1,
+          idEmpresa: 1,
+          perfil: 'Usuario',
+          Perfil: 'Usuario',
+        },
+        token: 'user-demo-token',
+      })
+    }
+    return res.status(401).json({ message: 'Credenciais inválidas' })
+  })
+
+
+
+  app.post('/api/Usuario/ValidarUsername', (req, res) => {
+    const { nomeUsuario } = req.body || {}
+    if (!nomeUsuario) {
+      return res.status(400).json({ error: 'Nome de usuário é obrigatório' })
+    }
+    const exists = registeredUsernames.has(nomeUsuario.toLowerCase())
+    return res.json({ exists, message: exists ? 'Este usuário já está registrado' : 'Usuário disponível' })
+  })
+
+  app.post('/api/Usuario/Registrar', (req, res) => {
+    const { nomeUsuario, email, PasswordString } = req.body || {}
+    
+    if (!nomeUsuario || !email || !PasswordString) {
+      return res.status(400).json({ error: 'Todos os campos são obrigatórios' })
+    }
+
+    if (registeredEmails.has(email.toLowerCase())) {
+      return res.status(400).json({ error: 'Este email já está registrado' })
+    }
+
+    if (registeredUsernames.has(nomeUsuario.toLowerCase())) {
+      return res.status(400).json({ error: 'Este usuário já está registrado' })
+    }
+
+    // Register the new user
+    registeredEmails.add(email.toLowerCase())
+    registeredUsernames.add(nomeUsuario.toLowerCase())
+
+    return res.json({
+      success: true,
+      message: 'Usuário registrado com sucesso',
+      usuario: {
+        id: Date.now(),
+        nomeUsuario,
+        emailUsuario: email,
+      },
+    })
+  })
+}
 
 // Simple in-memory store for MIDAS profiles keyed by token
 const midasProfiles = new Map()
@@ -82,218 +230,195 @@ app.post('/api/midas/chat', async (req, res) => {
 })
 
 app.post('/assistente', async (req, res) => {
-  const { pergunta } = req.body || {}
+  const { pergunta, model: requestedModel, permissoes } = req.body || {}
   const lower = String(pergunta || '').toLowerCase()
 
   if (!pergunta) {
     return res.json({ reply: 'Envie sua pergunta no corpo da requisição.' })
   }
 
-  if (lower.includes('saldo')) {
-    return res.json({
-      reply: 'Saldo estimado: R$ 12.450,00. Para manter saúde financeira, reserve 20% para impostos e reinvista parte em capital de giro.'
-    })
-  }
-
-  if (lower.includes('boa prática') || lower.includes('boas práticas') || lower.includes('dica financeira') || lower.includes('conselho financeiro')) {
-    return res.json({
-      reply: 'Boas práticas: separe finanças pessoais e empresariais, controle fluxo de caixa diário, pague impostos em dia e mantenha reserva para 3-6 meses de despesas.'
-    })
-  }
-
-  if (lower.includes('cotação') || lower.includes('ação') || lower.includes('ações') || lower.includes('moeda') || lower.includes('dólar') || lower.includes('euro') || lower.includes('btc') || lower.includes('criptomoeda')) {
-    const symbol = extractFinanceSymbol(lower)
-
-    try {
-      const quote = await fetchFinanceQuote(symbol)
-      return res.json({
-        reply: `Cotação de ${symbol}: ${quote}`,
-        quote,
-        symbol,
-      })
-    } catch (error) {
-      console.error('Finance error', error)
-      return res.json({ reply: 'Não foi possível obter a cotação no momento. Tente novamente mais tarde.' })
+  // Enriquecer prompt com contexto do usuário
+  let enrichedPrompt = pergunta
+  if (permissoes) {
+    const contextParts = []
+    
+    if (permissoes.time) {
+      contextParts.push(`Hora do usuário: ${permissoes.time}`)
+    }
+    
+    if (permissoes.location) {
+      contextParts.push(`Localização aproximada do usuário: Latitude ${permissoes.location.lat.toFixed(2)}, Longitude ${permissoes.location.lng.toFixed(2)}`)
+    }
+    
+    if (permissoes.temperature) {
+      contextParts.push(`Temperatura da região: ${permissoes.temperature}°C`)
+    }
+    
+    if (contextParts.length > 0) {
+      enrichedPrompt = `[Contexto: ${contextParts.join(', ')}]\n\n${pergunta}`
     }
   }
 
-  return res.json({
-    reply: 'Desculpe, não entendi sua pergunta. Peça saldo, cotação de ações ou boas práticas financeiras.'
-  })
-})
-
-function extractFinanceSymbol(lower) {
-  if (lower.includes('dólar') || lower.includes('dolár') || lower.includes('dollar')) {
-    return 'USD/BRL'
-  }
-  if (lower.includes('euro')) {
-    return 'EUR/BRL'
-  }
-  if (lower.includes('btc') || lower.includes('bitcoin')) {
-    return 'BTC/BRL'
-  }
-
-  const match = lower.match(/(?:de|da|do|para|sobre)\s+([A-Za-z\.\^\-]{2,10})/i)
-  if (match && match[1]) {
-    return match[1].toUpperCase()
-  }
-
-  const known = ['IBM', 'AAPL', 'MSFT', 'VALE3.SA', 'PETR4.SA']
-  return known.find((symbol) => lower.includes(symbol.toLowerCase())) || 'IBM'
-}
-
-async function fetchFinanceQuote(symbol) {
-  if (symbol.endsWith('/BRL')) {
-    const [from, to] = symbol.split('/')
-    return await fetchCurrencyQuote(from, to)
-  }
-
-  if (ALPHA_VANTAGE_API_KEY) {
-    const url = `https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${encodeURIComponent(symbol)}&apikey=${ALPHA_VANTAGE_API_KEY}`
-    const resp = await fetch(url)
-    const data = await resp.json()
-    const quote = data?.['Global Quote']?.['05. price']
-    if (!quote) {
-      throw new Error('Quote not found')
-    }
-    return formatPrice(Number(quote))
-  }
-
-  const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(symbol)}`
-  const resp = await fetch(url)
-  const data = await resp.json()
-  const quote = data?.quoteResponse?.result?.[0]?.regularMarketPrice
-  if (!quote) throw new Error('Quote not found')
-  return formatPrice(Number(quote))
-}
-
-async function fetchCurrencyQuote(from, to) {
-  if (ALPHA_VANTAGE_API_KEY) {
-    const url = `https://www.alphavantage.co/query?function=CURRENCY_EXCHANGE_RATE&from_currency=${encodeURIComponent(from)}&to_currency=${encodeURIComponent(to)}&apikey=${ALPHA_VANTAGE_API_KEY}`
-    const resp = await fetch(url)
-    const data = await resp.json()
-    const rate = data?.['Realtime Currency Exchange Rate']?.['5. Exchange Rate']
-    if (!rate) throw new Error('Currency quote not found')
-    return formatPrice(Number(rate))
-  }
-
-  const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(from + to)}=X`
-  const resp = await fetch(url)
-  const data = await resp.json()
-  const quote = data?.quoteResponse?.result?.[0]?.regularMarketPrice
-  if (!quote) throw new Error('Currency quote not found')
-  return formatPrice(Number(quote))
-}
-
-async function fetchFinanceIntraday(symbol, interval = '5min') {
-  if (!ALPHA_VANTAGE_API_KEY) {
-    throw new Error('ALPHA_VANTAGE_API_KEY not configured for intraday')
-  }
-
-  const url = `https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol=${encodeURIComponent(symbol)}&interval=${encodeURIComponent(interval)}&apikey=${ALPHA_VANTAGE_API_KEY}`
-  const resp = await fetch(url)
-  const data = await resp.json()
-
-  if (data['Note']) {
-    throw new Error(data['Note'])
-  }
-  if (data['Error Message']) {
-    throw new Error(data['Error Message'])
-  }
-
-  const seriesKey = `Time Series (${interval})`
-  const series = data?.[seriesKey]
-  if (!series) {
-    throw new Error('Intraday data not found')
-  }
-
-  const timestamps = Object.keys(series)
-  if (timestamps.length === 0) {
-    throw new Error('No intraday points returned')
-  }
-
-  const latest = timestamps[0]
-  const point = series[latest]
-  return {
-    symbol,
-    interval,
-    timestamp: latest,
-    open: Number(point['1. open']),
-    high: Number(point['2. high']),
-    low: Number(point['3. low']),
-    close: Number(point['4. close']),
-    volume: Number(point['5. volume']),
-    raw: data,
-  }
-}
-
-app.get('/api/finance/alpha/intraday', async (req, res) => {
-  const symbol = String(req.query.symbol || 'IBM').toUpperCase()
-  const interval = String(req.query.interval || '5min')
-
-  if (!ALPHA_VANTAGE_API_KEY) {
-    return res.status(400).json({ error: 'ALPHA_VANTAGE_API_KEY not configured' })
+  if (!pergunta) {
+    return res.json({ reply: 'Envie sua pergunta no corpo da requisição.' })
   }
 
   try {
-    const intraday = await fetchFinanceIntraday(symbol, interval)
-    return res.json(intraday)
-  } catch (error) {
-    console.error('Intraday error', error)
-    return res.status(500).json({ error: String(error) })
-  }
-})
-
-function formatPrice(value) {
-  if (Number.isNaN(value)) return 'N/A'
-  return `R$ ${value.toFixed(2)}`
-}
-
-// Google Translate proxy
-app.post('/api/google/translate', async (req, res) => {
-  const { text, target } = req.body || {}
-  const googleKey = process.env.GOOGLE_API_KEY
-
-  if (!googleKey) return res.status(400).json({ error: 'GOOGLE_API_KEY not configured' })
-
-  try {
-    const url = `https://translation.googleapis.com/language/translate/v2?key=${googleKey}`
-    const payload = { q: text, target: target || 'pt' }
-    const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
-    const data = await r.json()
-    const translatedText = data && data.data && data.data.translations && data.data.translations[0] && data.data.translations[0].translatedText
-    return res.json({ translatedText, raw: data })
-  } catch (error) {
-    console.error('Translate error', error)
-    return res.status(500).json({ error: 'Translate error' })
-  }
-})
-
-// Google Vision proxy
-app.post('/api/google/vision', async (req, res) => {
-  const { imageBase64, imageUrl } = req.body || {}
-  const googleKey = process.env.GOOGLE_API_KEY
-
-  if (!googleKey) return res.status(400).json({ error: 'GOOGLE_API_KEY not configured' })
-
-  try {
-    const url = `https://vision.googleapis.com/v1/images:annotate?key=${googleKey}`
-    const requests = []
-
-    if (imageBase64) {
-      requests.push({ image: { content: imageBase64 }, features: [{ type: 'LABEL_DETECTION', maxResults: 5 }, { type: 'TEXT_DETECTION', maxResults: 5 }] })
-    } else if (imageUrl) {
-      requests.push({ image: { source: { imageUri: imageUrl } }, features: [{ type: 'LABEL_DETECTION', maxResults: 5 }, { type: 'TEXT_DETECTION', maxResults: 5 }] })
-    } else {
-      return res.status(400).json({ error: 'imageBase64 or imageUrl required' })
+    const useServiceAccount = Boolean(googleServiceAccountCredentials || GOOGLE_SERVICE_ACCOUNT_KEYFILE)
+    if (!GOOGLE_GENERATIVE_API_KEY && !useServiceAccount) {
+      return res.json({ reply: 'Desculpe, não consigo acessar o assistente de IA agora. Você ainda pode usar o sistema normalmente.', fallback: true })
     }
 
-    const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ requests }) })
-    const data = await r.json()
-    return res.json({ responses: data.responses || data })
+    const modelsToTry = [
+      'gemini-2.5-pro',
+      'gemini-2.5-flash',
+      'gemini-2.0-flash'
+    ]
+
+    const headers = { 'Content-Type': 'application/json' }
+    let accessToken = null
+    if (useServiceAccount) {
+      accessToken = await getGoogleGenerativeAccessToken()
+      if (!accessToken && !GOOGLE_GENERATIVE_API_KEY) {
+        return res.json({ reply: 'Desculpe, não consigo acessar o assistente de IA agora. Você ainda pode usar o sistema normalmente.', fallback: true })
+      }
+    }
+
+    const authModes = []
+    if (useServiceAccount && accessToken) {
+      authModes.push('serviceAccount')
+    }
+    if (GOOGLE_GENERATIVE_API_KEY) {
+      authModes.push('apiKey')
+    }
+    if (authModes.length === 0) {
+      return res.json({ reply: 'Desculpe, não consigo acessar o assistente de IA agora. Você ainda pode usar o sistema normalmente.', fallback: true })
+    }
+
+    const tryOrder = requestedModel ? [requestedModel, ...modelsToTry.filter(m => m !== requestedModel)] : modelsToTry
+
+    async function callGoogleModel(model, authMode) {
+      const endpoints = ['generateContent', 'generateText']
+      let lastError = null
+
+      for (const endpoint of endpoints) {
+        try {
+          const apiKeySuffix = authMode === 'apiKey' ? `?key=${GOOGLE_GENERATIVE_API_KEY}` : ''
+          const url = `https://generativelanguage.googleapis.com/v1/models/${model}:${endpoint}${apiKeySuffix}`
+          const requestHeaders = { ...headers }
+          if (authMode === 'serviceAccount') {
+            requestHeaders.Authorization = `Bearer ${accessToken}`
+          }
+          const payload = endpoint === 'generateText'
+            ? { prompt: { text: `Responda em Português do Brasil. ${enrichedPrompt}` } }
+            : {
+              contents: [
+                { parts: [{ text: 'Responda em Português do Brasil. Sempre responda em português, de forma clara e direta.' }] },
+                { parts: [{ text: enrichedPrompt }] },
+              ],
+            }
+
+          const r = await axios.post(url, payload, { headers: requestHeaders, timeout: 10000 })
+          const output = extractGenerativeResponseText(r.data)
+          return { output, raw: r.data }
+        } catch (err) {
+          lastError = err
+          const resp = err?.response?.data || null
+          const msg = String(resp?.error?.message || err?.message || '')
+          const isNotFound = resp?.error?.code === 404 || msg.toLowerCase().includes('not found')
+          if (isNotFound) {
+            continue
+          }
+          throw err
+        }
+      }
+
+      throw lastError
+    }
+
+    function extractGenerativeResponseText(data) {
+      const candidate = data?.candidates?.[0]
+      if (candidate) {
+        const content = Array.isArray(candidate?.content) ? candidate.content[0] : candidate?.content
+        const text = content?.text || content?.parts?.[0]?.text || candidate?.text || candidate?.output
+        return String(text || data?.output || data?.text || '').trim() || null
+      }
+      return String(data?.output || data?.text || '').trim() || null
+    }
+
+    let sawQuotaError = false
+    let sawInvalidKey = false
+    for (const authMode of authModes) {
+      for (let i = 0; i < tryOrder.length; i++) {
+        const model = tryOrder[i]
+      generativeMetrics.totalAttempts = (generativeMetrics.totalAttempts || 0) + 1
+      generativeMetrics.attempts[model] = (generativeMetrics.attempts[model] || 0) + 1
+
+      try {
+        const { output, raw } = await callGoogleModel(model, authMode)
+        if (output) {
+          return res.json({ reply: String(output) })
+        }
+      } catch (err) {
+        const resp = err?.response?.data || null
+        const msg = String(resp?.error?.message || err?.message || '')
+        const status = err?.response?.status
+        const isQuota = status === 429 || msg.toLowerCase().includes('quota') || msg.toLowerCase().includes('rate limit') || msg.toLowerCase().includes('limit: 0')
+        const isInvalidKey = msg.toLowerCase().includes('api key not valid') || msg.toLowerCase().includes('permission')
+        const isNotFound = status === 404 || msg.toLowerCase().includes('not found')
+        const isTransient = [429, 500, 502, 503, 504].includes(status) || /high demand|temporarily unavailable|unavailable|timeout/i.test(msg)
+
+        console.warn('Generative model attempt failed', { model, status, message: msg })
+
+        if (isQuota) {
+          sawQuotaError = true
+          generativeMetrics.quotaErrors[model] = (generativeMetrics.quotaErrors[model] || 0) + 1
+        }
+        if (isInvalidKey) {
+          sawInvalidKey = true
+        }
+
+        if (requestedModel && requestedModel !== model) {
+          const key = `${requestedModel}->${model}`
+          generativeMetrics.fallbacks[key] = (generativeMetrics.fallbacks[key] || 0) + 1
+        } else if (i > 0) {
+          const prev = tryOrder[i - 1]
+          const key = `${prev}->${model}`
+          generativeMetrics.fallbacks[key] = (generativeMetrics.fallbacks[key] || 0) + 1
+        }
+
+        if (isInvalidKey) {
+          return res.json({ reply: 'O assistente de IA não está disponível porque a chave gerada é inválida ou sem permissão.', fallback: true, invalidKey: true })
+        }
+
+        if (isQuota || isNotFound || isTransient) {
+          continue
+        }
+
+        console.error('Generative API error while calling model', model, resp || msg)
+        return res.json({ reply: 'Erro ao consultar o assistente. Tente novamente mais tarde.', fallback: true })
+      }
+    }
+    }
+
+    if (sawInvalidKey) {
+      return res.json({ reply: 'O assistente de IA não está disponível porque a chave gerada é inválida ou sem permissão.', fallback: true, invalidKey: true })
+    }
+    if (sawQuotaError) {
+      return res.json({ reply: 'Desculpe, o assistente está sem cota nos modelos disponíveis no momento. Tente novamente mais tarde.', fallback: true })
+    }
+    return res.json({ reply: 'Desculpe, o assistente não conseguiu responder no momento. Tente novamente mais tarde.', fallback: true })
   } catch (error) {
-    console.error('Vision error', error)
-    return res.status(500).json({ error: 'Vision error' })
+    const responseData = error?.response?.data || null
+    const isInvalidKey = responseData?.error?.message && String(responseData.error.message).toLowerCase().includes('api key not valid')
+
+    if (isInvalidKey) {
+      console.error('Generative API invalid key', responseData)
+      return res.json({ reply: 'O assistente de IA não está disponível porque a chave gerada é inválida. Continue usando o sistema normalmente e validaremos a chave depois.', fallback: true, invalidKey: true })
+    }
+
+    console.error('Generative API error', responseData || error.message)
+    return res.json({ reply: 'Erro ao consultar o assistente. Tente novamente mais tarde.', fallback: true })
   }
 })
 
@@ -301,8 +426,6 @@ app.post('/api/google/vision', async (req, res) => {
 app.use(express.static(path.join(__dirname, 'dist')));
 
 // API proxy for development or production integration
-const apiTarget = process.env.API_PROXY_TARGET || process.env.VITE_API_BASE_URL;
-
 if (apiTarget) {
   app.use(
     '/api',
@@ -314,6 +437,11 @@ if (apiTarget) {
     })
   );
 }
+
+// Expose simple metrics for monitoring fallback and quota events (placed before wildcard route)
+app.get('/assistente/metrics', (req, res) => {
+  return res.json({ generativeMetrics })
+})
 
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));

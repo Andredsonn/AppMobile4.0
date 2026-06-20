@@ -7,7 +7,7 @@ export const tipoRecorrenciaService = {
     },
 
     async getById(id: number): Promise<TipoRecorrencia> {
-        return apiRequest<TipoRecorrencia>('/TipoRecorrencia/${id}');
+        return apiRequest<TipoRecorrencia>(`/TipoRecorrencia/${id}`);
     },
 
     async create(tipoRecorrencia: Partial<TipoRecorrencia>): Promise<TipoRecorrencia> {
@@ -22,7 +22,7 @@ export const tipoRecorrenciaService = {
     },
 
     async delete(id: number) : Promise<void> {
-        return apiRequest<void>('/TipoRecorrencia/${id}', {
+        return apiRequest<void>(`/TipoRecorrencia/${id}`, {
             method : 'DELETE',
         });
     },

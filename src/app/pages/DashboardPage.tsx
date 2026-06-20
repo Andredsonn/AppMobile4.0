@@ -286,6 +286,27 @@ export function DashboardPage() {
     saldo,
   ]);
 
+  const goalMessage = useMemo(() => {
+    if (totalReceitas === 0 && totalDespesas === 0) {
+      return {
+        message: 'Ainda não há dados suficientes. Registre receitas e despesas para que o Midas possa orientar seu caminho ao resultado positivo.',
+        type: 'info',
+      };
+    }
+
+    if (saldo > 0) {
+      return {
+        message: 'Resultado positivo alcançado: suas receitas estão superando as despesas. Foque em manter receitas crescentes e despesas controladas.',
+        type: 'success',
+      };
+    }
+
+    return {
+      message: 'Para chegar ao resultado positivo, aumente receitas e reduza despesas. Priorize cortes nos gastos não essenciais e busque novas fontes de vendas.',
+      type: 'danger',
+    };
+  }, [totalReceitas, totalDespesas, saldo]);
+
   /* =========================================
      SKELETON LOADING
   ========================================= */

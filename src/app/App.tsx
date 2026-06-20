@@ -12,7 +12,8 @@ import { NovoEmprestimoPage } from './pages/NovoEmprestimoPage';
 import { NovaRecorrenciaPage } from './pages/NovaRecorrenciaPage';
 import { EmpresaPage } from './pages/EmpresaPage';
 import { RegisterPage } from './pages/RegistrarPage';
-import { MidasDemoPage } from './pages/MidasDemoPage';
+import { MidasDemoPage } from '../pages/MidasDemoPage';
+import { MidasAssistant } from '../components/MidasAssistant';
 import { ModuleGuard } from './components/ModuleGuard';
 
 export default function App() {
@@ -35,6 +36,7 @@ export default function App() {
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
+        <MidasAssistant />
       </BrowserRouter>
       <Toaster position="top-right" />
     </AuthProvider>

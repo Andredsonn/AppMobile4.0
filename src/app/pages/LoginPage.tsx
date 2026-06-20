@@ -1,70 +1,29 @@
-import { useEffect, useState } from 'react';
-import { Navigate, useNavigate } from 'react-router';
+import { useEffect } from 'react';
+import { Navigate } from 'react-router';
 import { useAuth } from '../../context/AuthContext';
-import { Eye, EyeOff } from "lucide-react";
-import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
-import { Label } from '../components/ui/label';
-
 import {
   ArrowRight,
   Coins,
   CreditCard,
   DollarSign,
   LineChart,
-  Loader2,
-  Lock,
   PiggyBank,
   ShieldCheck,
+  Sparkles,
   TrendingUp,
-  User,
   Wallet,
 } from 'lucide-react';
 
-import { toast } from 'sonner';
-
 export function LoginPage() {
-  const [nome, setNome] = useState('');
-  const [password, setPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [showLogin, setShowLogin] = useState(true);
-  const [showPassword, setShowPassword] = useState(false);
-  const { login, isAuthenticated } = useAuth();
-  const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowLogin(true);
-    }, 300);
-
-    return () => clearTimeout(timer);
+    // Empty effect
   }, []);
 
   if (isAuthenticated) {
     return <Navigate to="/dashboard" replace />;
   }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-
-    try {
-      await login({
-        nomeUsuario: nome.trim(),
-        PasswordString: password,
-      });
-
-      toast.success('Login realizado com sucesso!');
-      navigate('/dashboard');
-    } catch (error: any) {
-      const message =
-        error?.message ||
-        'Erro ao fazer login. Verifique suas credenciais e a conexão.';
-      toast.error(message);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#2B000A] text-white">
@@ -86,22 +45,15 @@ export function LoginPage() {
       <header className="relative z-10 flex items-center px-10 py-6">
         <div className="flex items-center gap-3">
           <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white">
-            <img src= "/image.png"
-                 alt="Logo"
-                 className="h-10 w-10 object-contain"/>
+            <img src="/image.png" alt="Logo" className="h-10 w-10 object-contain" />
           </div>
-
           <div>
-            <h1 className="text-2xl font-black tracking-wide">
-              Projeto Midas
-            </h1>
-
-            <p className="text-sm text-gray-300">
-              Gestão Financeira Inteligente
-            </p>
+            <h1 className="text-2xl font-black tracking-wide">Projeto Midas</h1>
+            <p className="text-sm text-gray-300">Gestão Financeira Inteligente</p>
           </div>
         </div>
       </header>
+
       {/* Hero */}
       <main className="relative z-10 flex min-h-[85vh] flex-col gap-8 px-4 py-6 lg:flex-row lg:items-center lg:justify-between lg:px-10">
         {/* Left */}
@@ -121,9 +73,7 @@ export function LoginPage() {
           </h1>
 
           <p className="text-base leading-relaxed text-gray-300 sm:text-lg">
-            Gerencie gastos, acompanhe metas, visualize projeções e tome
-            decisões financeiras com uma plataforma moderna inspirada nas
-            melhores experiências do mercado.
+            Gerencie gastos, acompanhe metas, visualize projeções e tome decisões financeiras com uma plataforma moderna inspirada nas melhores experiências do mercado.
           </p>
 
           <div className="mt-8 grid gap-4 sm:grid-cols-2">
@@ -149,129 +99,38 @@ export function LoginPage() {
           </div>
         </section>
 
-        {/* Login Card */}
-        <section
-          className={`transition-all duration-700 ${showLogin
-            ? 'translate-y-0 opacity-100'
-            : 'translate-y-10 opacity-0'
-          } w-full max-w-xl lg:max-w-md`}
-        >
-          <div className="w-full rounded-3xl border border-white/10 bg-white/10 p-6 shadow-2xl backdrop-blur-2xl sm:p-8">
-            <div className="mb-8">
-              <h2 className="text-3xl font-bold text-white">
-                Entrar na plataforma
-              </h2>
-
-              <p className="mt-2 text-gray-300">
-                Faça login para acessar seu painel financeiro.
-              </p>
+        {/* Right - Assistente como único login */}
+        <section className="w-full max-w-lg">
+          <div className="rounded-3xl border border-white/10 bg-white/5 p-8 shadow-2xl backdrop-blur-2xl">
+            <div className="mb-6 flex items-center gap-3">
+              <Sparkles className="h-8 w-8 text-[#FFC107]" />
+              <div>
+                <h2 className="text-2xl font-bold">Bem-vindo!</h2>
+                <p className="text-sm text-gray-300">Use o Midas Assistant para começar</p>
+              </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-5">
-              <div>
-                <Label
-                  htmlFor="usuario"
-                  className="mb-2 block text-sm text-gray-200"
-                >
-                  Usuário
-                </Label>
+            <div className="space-y-4 text-gray-300">
+              <p className="text-sm leading-relaxed">
+                🤖 Clique no botão flutuante amarelo para abrir o assistente Midas e:
+              </p>
+              <ul className="space-y-2 text-sm">
+                <li className="flex items-center gap-2">
+                  <span className="text-[#FFC107]">→</span> Fazer login com suas credenciais
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="text-[#FFC107]">→</span> Criar uma nova conta
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="text-[#FFC107]">→</span> Recuperar sua senha
+                </li>
+              </ul>
+            </div>
 
-                <div className="relative">
-                  <User className="absolute left-3 top-3.5 h-5 w-5 text-gray-400" />
-
-                  <Input
-                    id="usuario"
-                    type="text"
-                    value={nome}
-                    onChange={(e) => setNome(e.target.value)}
-                    placeholder="Digite seu usuário"
-                    required
-                    className="h-12 rounded-xl border-white/10 bg-white/10 pl-11 text-white placeholder:text-gray-400"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <Label
-                  htmlFor="password"
-                  className="mb-2 block text-sm text-gray-200"
-                >
-                  Senha
-                </Label>
-
-                <div className="relative">
-                  <Lock className="absolute left-3 top-3.5 h-5 w-5 text-gray-400" />
-
-                  <Input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Digite sua senha"
-                    required
-                    className="h-12 rounded-xl border-white/10 bg-white/10 pl-11 text-white placeholder:text-gray-400"
-                  />
-
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
-                  >
-                    {showPassword ? <Eye size={20} /> : <EyeOff size={20} />}
-                  </button>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between pt-2">
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    className="h-4 w-4 rounded border-gray-500 bg-transparent"
-                  />
-
-                  <span className="text-sm text-gray-300">
-                    Lembrar-me
-                  </span>
-                </div>
-
-                <button
-                  type="button"
-                  className="text-sm font-medium text-[#FFC107] transition hover:text-yellow-300"
-                >
-                  Esqueceu a senha?
-                </button>
-              </div>
-
-              <Button
-                type="submit"
-                disabled={isLoading}
-                className="h-12 w-full rounded-xl bg-[#FFC107] text-base font-bold text-black transition hover:bg-[#FFB300]"
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Entrando...
-                  </>
-                ) : (
-                  <>
-                    Entrar
-                    <ArrowRight className="ml-2 h-5 w-5" />
-                  </>
-                )}
-              </Button>
-
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => navigate('/register')}
-                className="h-12 w-full rounded-xl border-white/10 bg-white/5 text-white transition hover:bg-white/10"
-              >
-                Criar Conta
-              </Button>
-            </form>
-
-            <div className="mt-8 border-t border-white/10 pt-5 text-center text-sm text-gray-400">
-              Projeto Midas © 2026
+            <div className="mt-8 border-t border-white/20 pt-6 text-center">
+              <p className="text-xs text-gray-400">
+                O Assistente Midas oferece segurança, inteligência e facilidade de uso.
+              </p>
             </div>
           </div>
         </section>

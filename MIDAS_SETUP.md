@@ -9,6 +9,9 @@ Environment variables (set in your deployment environment):
 
 Google Cloud APIs (optional)
 - `GOOGLE_API_KEY` - API key created in Google Cloud Console (APIs & Services → Credentials).
+- `GOOGLE_GENERATIVE_API_KEY` - API key for Google Generative API, if you are not using a service account.
+- `GOOGLE_SERVICE_ACCOUNT_JSON` - service account JSON payload (escaped newlines with `\n` inside the private key) used to authenticate calls to the Google Generative API.
+- `GOOGLE_APPLICATION_CREDENTIALS` - local file path to a service account JSON file for Google authentication.
 
 If you want MIDAS to use Google Translate or Vision, set `GOOGLE_API_KEY`.
 Server exposes helper proxy endpoints:

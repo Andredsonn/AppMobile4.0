@@ -79,7 +79,12 @@ A rota `/Lancamentos/somatoria` deve retornar:
 
 ## Passo 6: Credenciais de Teste
 
-Crie um usuário de teste na sua API ou use credenciais existentes:
+Se sua aplicação já está integrada com a API e o usuário já existe no banco, use essas credenciais existentes do seu ambiente.
+
+Se quiser testar localmente sem backend integrado, o servidor também suporta um usuário de demonstração quando nenhuma API remota estiver configurada:
+
+- Usuário: `Admin`
+- Senha: `Senha@123`
 
 ```json
 {
