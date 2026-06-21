@@ -27,7 +27,7 @@ import {
   createCalendarEvent,
   analyzeTransactionsByLocation,
   generateAutomaticReport,
-} from '../services/googleApisService.ts';
+} from '../services/googleApisService.js';
 
 export function setupGoogleApisRoutes(app, googleAuth) {
   
@@ -300,7 +300,7 @@ export function setupGoogleApisRoutes(app, googleAuth) {
    */
   app.get('/api/google/drive/files', async (req, res) => {
     try {
-      const maxResults = parseInt(req.query.maxResults as string) || 50;
+      const maxResults = parseInt(req.query.maxResults) || 50;
       const result = await listDriveFiles(googleAuth, maxResults);
       return res.json(result);
     } catch (error) {
