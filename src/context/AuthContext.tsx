@@ -39,30 +39,49 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async (credentials: LoginRequest) => {
     const response = await usuarioService.autenticar(credentials);
 
-    const usuarioId = response.usuario.id || response.usuario.Id || 0;
-    const nomeUsuario = response.usuario.nomeUsuario || response.usuario.NomeUsuario || '';
-    const idEmpresa = response.usuario.idEmpresa || response.usuario.IdEmpresa || 0;
-    const perfil = response.usuario.perfil || response.usuario.Perfil || '';
+    const token = response.token || response.Token || '';
+    const usuarioData = response.usuario || response.Usuario;
 
-  const authenticatedUser: Usuario = {
-    IdUsuario: usuarioId,
-    idUsuario: usuarioId,
-    nomeUsuario,
-    sobrenome: '',
-    emailUsuario: '',
-    telefone: '',
-    IdEmpresa: idEmpresa,
-    idEmpresa,
-    Perfil: perfil,
-    perfil,
-    Token: response.token,
+    if (!token || !usuarioData) {
+      throw new Error('Resposta de autenticação inválida. Verifique suas credenciais e tente novamente.');
+    }
+
+    const usuarioId =
+      usuarioData.id ||
+      usuarioData.Id ||
+      usuarioData.IdUsuario ||
+      usuarioData.idUsuario ||
+      0;
+
+    const nomeUsuario =
+      usuarioData.nomeUsuario ||
+      usuarioData.NomeUsuario ||
+      usuarioData.emailUsuario ||
+      usuarioData.EmailUsuario ||
+      '';
+
+    const idEmpresa = usuarioData.idEmpresa || usuarioData.IdEmpresa || 0;
+    const perfil = usuarioData.perfil || usuarioData.Perfil || '';
+
+    const authenticatedUser: Usuario = {
+      IdUsuario: usuarioId,
+      idUsuario: usuarioId,
+      nomeUsuario,
+      sobrenome: usuarioData.sobrenome || '',
+      emailUsuario: usuarioData.emailUsuario || usuarioData.EmailUsuario || '',
+      telefone: usuarioData.telefone || '',
+      IdEmpresa: idEmpresa,
+      idEmpresa,
+      Perfil: perfil,
+      perfil,
+      Token: token,
+    };
+
+    localStorage.setItem(STORAGE_KEYS.TOKEN, token);
+    localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(authenticatedUser));
+
+    setUser(authenticatedUser);
   };
-
-  localStorage.setItem(STORAGE_KEYS.TOKEN, response.token);
-  localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(authenticatedUser));
-
-  setUser(authenticatedUser);
-};
 
 
   const logout = () => {

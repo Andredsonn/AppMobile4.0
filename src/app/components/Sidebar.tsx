@@ -15,7 +15,7 @@ const menuItems = [
   { icon: Receipt, label: 'Lançamentos', path: '/lancamentos' },
   { icon: TrendingUp, label: 'Projeções', path: '/projecoes' },
   { icon: CreditCard, label: 'Empréstimos', path: '/emprestimos' },
-  // Recorrências removed from sidebar — functionality moved to Lançamentos
+  { icon: RefreshCw, label: 'Recorrências', path: '/recorrencias' },
   { icon: Building2, label: 'Empresa', path: '/empresa' },
 ];
 

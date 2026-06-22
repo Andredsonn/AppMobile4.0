@@ -125,24 +125,31 @@ export interface Responsavel {
 
 // DTOs para requisições
 export interface LoginRequest {
-  nomeUsuario: string;
+  nomeUsuario?: string;
+  emailUsuario?: string;
   PasswordString: string;
 }
 
 export interface UsuarioAuth {
-  id: number;
+  id?: number;
   Id?: number;
-  nomeUsuario: string;
+  IdUsuario?: number;
+  idUsuario?: number;
+  nomeUsuario?: string;
   NomeUsuario?: string;
-  idEmpresa: number;
+  emailUsuario?: string;
+  EmailUsuario?: string;
+  idEmpresa?: number;
   IdEmpresa?: number;
-  perfil: string;
+  perfil?: string;
   Perfil?: string;
 }
 
 export interface LoginResponse {
-  token: string;
-  usuario: UsuarioAuth;
+  token?: string;
+  Token?: string;
+  usuario?: UsuarioAuth;
+  Usuario?: UsuarioAuth;
 }
 
 export interface CriarUsuarioEmpresaRequest {
@@ -160,6 +167,8 @@ export interface AtualizarPerfilUsuarioRequest {
 
 export interface RegistrarRequest {
   nomeUsuario: string;
+  emailUsuario?: string;
+  email?: string;
   PasswordString: string;
 }
 
