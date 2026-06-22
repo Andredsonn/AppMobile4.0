@@ -1,0 +1,554 @@
+[33mcommit 601f2d275a397d33282d5f60850b4c0c354b73ca[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mdev[m[33m)[m
+Author: Andredsonn <andreaesilva6@gmai.com>
+Date:   Sun Jun 21 22:22:25 2026 -0300
+
+    Atualiza .gitignore para ignorar arquivos JSON
+
+ .gitignore | 1 [32m+[m
+ 1 file changed, 1 insertion(+)
+
+[33mcommit 33c97ef3fb9cd288416154e6be1930aeb87cd2b0[m
+Merge: 92fbe39 349ce12
+Author: Andredsonn <andreaesilva6@gmai.com>
+Date:   Sun Jun 21 22:18:24 2026 -0300
+
+    Final
+
+[33mcommit 92fbe39a71f820a2ebfca26f56f1d7ceca5c0e05[m
+Author: Andredsonn <andreaesilva6@gmai.com>
+Date:   Sun Jun 21 22:13:22 2026 -0300
+
+    Commit Final
+
+ .env.example                       |     5 [32m+[m
+ android/.gitignore                 |   117 [32m+[m[31m-[m
+ android/gradle.properties          |    10 [32m+[m[31m-[m
+ android/variables.gradle           |     4 [32m+[m[31m-[m
+ assistente-test.html               |    41 [32m+[m
+ capacitor.config.json              |    16 [32m+[m
+ dist/assets/image-KXEvpsYD.png     |   Bin [31m0[m -> [32m128457[m bytes
+ dist/assets/index-CHOrqQUT.css     |     1 [32m+[m
+ dist/assets/index-CT67HdNG.js      |   483 [32m++[m
+ dist/assets/xlsx-CkFp8p6R.js       |   105 [32m+[m
+ dist/image.png                     |   Bin [31m0[m -> [32m128457[m bytes
+ dist/index.html                    |    18 [32m+[m
+ midas-500103-3c42b31ef18f.json     |    13 [32m+[m
+ mobile-deps.txt                    |   Bin [31m0[m -> [32m5834[m bytes
+ package-lock.json                  | 10664 [32m+++++++++++++++++++++++++++++++++++[m
+ package.json                       |   118 [32m+[m
+ server.js                          |   256 [32m+[m[31m-[m
+ src/app/App.tsx                    |     2 [32m+[m
+ src/app/components/Sidebar.tsx     |     2 [32m+[m[31m-[m
+ src/app/pages/LancamentosPage.tsx  |    42 [32m+[m[31m-[m
+ src/app/pages/LoginPage.tsx        |   120 [32m+[m[31m-[m
+ src/app/pages/RecorrenciasPage.tsx |    36 [32m+[m[31m-[m
+ src/app/pages/RegistrarPage.tsx    |    15 [32m+[m[31m-[m
+ src/components/MidasAssistant.tsx  |    27 [32m+[m[31m-[m
+ src/context/AuthContext.tsx        |    63 [32m+[m[31m-[m
+ src/routes/googleApisRoutes.js     |   485 [32m++[m
+ src/routes/googleApisRoutes.ts     |     2 [32m+[m[31m-[m
+ src/services/googleApisService.js  |   720 [32m+++[m
+ src/types/index.ts                 |    23 [32m+[m[31m-[m
+ tmp_verify_payload.py              |    27 [32m+[m
+ vite.config.ts                     |    47 [32m+[m[31m-[m
+ 31 files changed, 13090 insertions(+), 372 deletions(-)
+
+[33mcommit 349ce126df11c92bfecc03fab8001815ebc75b55[m[33m ([m[1;31morigin/main[m[33m)[m
+Author: Andredsonn <andreaesilva6@gmai.com>
+Date:   Sun Jun 21 01:11:44 2026 -0300
+
+    Ajuste API IA Assistente Midas
+
+ routes/googleApisRoutes.js    | 485 [32m++++++++++++++++++++++++++++[m
+ routes/googleApisRoutes.ts    |   2 [32m+[m[31m-[m
+ services/googleApisService.js | 720 [32m++++++++++++++++++++++++++++++++++++++++++[m
+ 3 files changed, 1206 insertions(+), 1 deletion(-)
+
+[33mcommit 27b9b4ba7b2d1e401134f6f0caaf291d141778ad[m
+Author: Andredsonn <andreaesilva6@gmai.com>
+Date:   Sat Jun 20 04:53:53 2026 -0300
+
+    Primeiro commit limpo sem credenciais
+
+ __tests__/Button.spec.tsx                  |   22 [32m+[m
+ __tests__/lancamentoService.crud.spec.ts   |   28 [32m+[m
+ __tests__/lancamentoService.test.ts        |   23 [32m+[m
+ __tests__/midasAuth.spec.tsx               |   31 [32m+[m
+ app/App.tsx                                |   44 [32m++[m
+ app/components/AnaliseIAProjecao.tsx       |  204 [32m++++++[m
+ app/components/EmptyState.tsx              |   36 [32m+[m
+ app/components/ErrorMessage.tsx            |   17 [32m+[m
+ app/components/Layout.tsx                  |   37 [32m+[m
+ app/components/LoadingSpinner.tsx          |   21 [32m+[m
+ app/components/ModuleGuard.tsx             |   25 [32m+[m
+ app/components/Sidebar.tsx                 |   71 [32m++[m
+ app/components/StatCard.tsx                |   44 [32m++[m
+ app/components/StatusBadge.tsx             |   23 [32m+[m
+ app/components/Topbar.tsx                  |  107 [32m+++[m
+ app/components/figma/ImageWithFallback.tsx |   27 [32m+[m
+ app/components/ui/accordion.tsx            |   66 [32m++[m
+ app/components/ui/alert-dialog.tsx         |  157 [32m+++++[m
+ app/components/ui/alert.tsx                |   66 [32m++[m
+ app/components/ui/aspect-ratio.tsx         |   11 [32m+[m
+ app/components/ui/avatar.tsx               |   53 [32m++[m
+ app/components/ui/badge.tsx                |   46 [32m++[m
+ app/components/ui/breadcrumb.tsx           |  109 [32m+++[m
+ app/components/ui/button.tsx               |   59 [32m++[m
+ app/components/ui/calendar.tsx             |   75 [32m+++[m
+ app/components/ui/card.tsx                 |   92 [32m+++[m
+ app/components/ui/carousel.tsx             |  241 [32m+++++++[m
+ app/components/ui/chart.tsx                |  353 [32m++++++++++[m
+ app/components/ui/checkbox.tsx             |   32 [32m+[m
+ app/components/ui/collapsible.tsx          |   33 [32m+[m
+ app/components/ui/command.tsx              |  177 [32m+++++[m
+ app/components/ui/context-menu.tsx         |  252 [32m+++++++[m
+ app/components/ui/dialog.tsx               |  137 [32m++++[m
+ app/components/ui/drawer.tsx               |  132 [32m++++[m
+ app/components/ui/dropdown-menu.tsx        |  257 [32m+++++++[m
+ app/components/ui/form.tsx                 |  168 [32m+++++[m
+ app/components/ui/hover-card.tsx           |   44 [32m++[m
+ app/components/ui/input-otp.tsx            |   77 [32m+++[m
+ app/components/ui/input.tsx                |   21 [32m+[m
+ app/components/ui/label.tsx                |   24 [32m+[m
+ app/components/ui/menubar.tsx              |  276 [32m++++++++[m
+ app/components/ui/navigation-menu.tsx      |  168 [32m+++++[m
+ app/components/ui/pagination.tsx           |  127 [32m++++[m
+ app/components/ui/popover.tsx              |   48 [32m++[m
+ app/components/ui/progress.tsx             |   31 [32m+[m
+ app/components/ui/radio-group.tsx          |   45 [32m++[m
+ app/components/ui/resizable.tsx            |   56 [32m++[m
+ app/components/ui/scroll-area.tsx          |   58 [32m++[m
+ app/components/ui/select.tsx               |  189 [32m++++++[m
+ app/components/ui/separator.tsx            |   28 [32m+[m
+ app/components/ui/sheet.tsx                |  139 [32m++++[m
+ app/components/ui/sidebar.tsx              |  726 [32m++++++++++++++++++++[m
+ app/components/ui/skeleton.tsx             |   13 [32m+[m
+ app/components/ui/slider.tsx               |   63 [32m++[m
+ app/components/ui/sonner.tsx               |   25 [32m+[m
+ app/components/ui/switch.tsx               |   31 [32m+[m
+ app/components/ui/table.tsx                |  116 [32m++++[m
+ app/components/ui/tabs.tsx                 |   66 [32m++[m
+ app/components/ui/textarea.tsx             |   18 [32m+[m
+ app/components/ui/toggle-group.tsx         |   73 [32m++[m
+ app/components/ui/toggle.tsx               |   47 [32m++[m
+ app/components/ui/tooltip.tsx              |   61 [32m++[m
+ app/components/ui/use-mobile.ts            |   21 [32m+[m
+ app/components/ui/utils.ts                 |    6 [32m+[m
+ app/pages/DashboardPage.tsx                |  713 [32m++++++++++++++++++++[m
+ app/pages/EmpresaPage.tsx                  |  863 [32m++++++++++++++++++++++++[m
+ app/pages/EmprestimosPage.tsx              |  370 [32m++++++++++[m
+ app/pages/LancamentosPage.tsx              |  499 [32m++++++++++++++[m
+ app/pages/LoginPage.tsx                    |  140 [32m++++[m
+ app/pages/NovaProjecaoPage.tsx             |  162 [32m+++++[m
+ app/pages/NovaRecorrenciaPage.tsx          |  279 [32m++++++++[m
+ app/pages/NovoEmprestimoPage.tsx           |  232 [32m+++++++[m
+ app/pages/NovoLancamentoPage.tsx           |  575 [32m++++++++++++++++[m
+ app/pages/ProjecoesPage.tsx                |  369 [32m++++++++++[m
+ app/pages/RecorrenciasPage.tsx             |  897 [32m+++++++++++++++++++++++++[m
+ app/pages/RegistrarPage.tsx                |  118 [32m++++[m
+ components/ExcelImportModal.tsx            |  290 [32m++++++++[m
+ components/MidasAssistant.tsx              | 1002 [32m++++++++++++++++++++++++++++[m
+ components/MidasWidget.tsx                 |  157 [32m+++++[m
+ components/ui/button.tsx                   |   34 [32m+[m
+ constants/index.ts                         |  135 [32m++++[m
+ context/AuthContext.tsx                    |  106 [32m+++[m
+ hooks/useDebounce.ts                       |   21 [32m+[m
+ hooks/useLocalStorage.ts                   |   43 [32m++[m
+ main.tsx                                   |    7 [32m+[m
+ pages/MidasDemoPage.tsx                    |   47 [32m++[m
+ routes/googleApisRoutes.ts                 |  485 [32m++++++++++++++[m
+ services/analiseIAService.ts               |   24 [32m+[m
+ services/api.ts                            |   79 [32m+++[m
+ services/empresaService.ts                 |   37 [32m+[m
+ services/emprestimoService.ts              |   36 [32m+[m
+ services/excelService.ts                   |  216 [32m++++++[m
+ services/googleApisService.ts              |  726 [32m++++++++++++++++++++[m
+ services/lancamentoService.ts              |   56 [32m++[m
+ services/projecaoService.ts                |   36 [32m+[m
+ services/recorrenciaService.ts             |   36 [32m+[m
+ services/responsavelService.ts             |   25 [32m+[m
+ services/tiporecorrenciaService.ts         |   29 [32m+[m
+ services/usuarioService.ts                 |   72 [32m++[m
+ setupTests.ts                              |    7 [32m+[m
+ styles/fonts.css                           |    0
+ styles/index.css                           |    3 [32m+[m
+ styles/tailwind.css                        |    4 [32m+[m
+ styles/theme.css                           |  186 [32m++++++[m
+ types/index.ts                             |  183 [32m+++++[m
+ utils/formatters.ts                        |  131 [32m++++[m
+ utils/permissions.ts                       |   36 [32m+[m
+ utils/validators.ts                        |  196 [32m++++++[m
+ 108 files changed, 15535 insertions(+)
+
+[33mcommit aca8d21986f49181faaab39111846b863baad2ed[m[33m ([m[1;32mbackup-before-crud-validation-20260621-203542[m[33m)[m
+Author: Andredsonn <andreaesilva6@gmai.com>
+Date:   Sat Jun 20 04:38:18 2026 -0300
+
+    Aplicando .gitignore e removendo arquivos sensíveis
+
+ capacitor.config.json          |    16 [31m-[m
+ dist/assets/image-KXEvpsYD.png |   Bin [31m128457[m -> [32m0[m bytes
+ dist/assets/index-BAOpDhp9.js  |   433 [31m--[m
+ dist/assets/index-CUd4WbvN.css |     1 [31m-[m
+ dist/assets/xlsx-CkFp8p6R.js   |   105 [31m-[m
+ dist/image.png                 |   Bin [31m128457[m -> [32m0[m bytes
+ dist/index.html                |    18 [31m-[m
+ package-lock.json              | 10268 [31m---------------------------------------[m
+ package.json                   |   117 [31m-[m
+ 9 files changed, 10958 deletions(-)
+
+[33mcommit cefee8e0d5bf38839595929ddd77c4d2d48d6afb[m[33m ([m[1;32mmain[m[33m)[m
+Author: GabrielOliveira92 <gabrieloliveira290792@gmail.com>
+Date:   Sat Jun 20 04:27:37 2026 -0300
+
+    4.0 com Assistente - IA Generativo e lançamento em massa
+
+ .env.example                                       |   12 [32m+[m
+ COMECE_AQUI.md                                     |  314 [32m++++++[m
+ GOOGLE_APIS_ESTRUTURA.md                           |  305 [32m++++++[m
+ GOOGLE_APIS_EXAMPLES.md                            |  770 [32m+++++++++++++++[m
+ GOOGLE_APIS_INDEX.md                               |  447 [32m+++++++++[m
+ GOOGLE_APIS_QUICK_REFERENCE.md                     |  375 [32m++++++++[m
+ GOOGLE_APIS_RELATORIO_FINAL.md                     |  522 [32m++++++++++[m
+ GOOGLE_APIS_SETUP.md                               |  438 [32m+++++++++[m
+ GOOGLE_APIS_SUMMARY.md                             |  381 [32m++++++++[m
+ MIDAS_SETUP.md                                     |    3 [32m+[m
+ SETUP.md                                           |    7 [32m+[m[31m-[m
+ .../lcov-report/components/MidasWidget.tsx.html    |  454 [32m+++++++++[m
+ coverage/lcov-report/components/index.html         |  116 [32m+++[m
+ coverage/lcov-report/index.html                    |   66 [32m+[m[31m-[m
+ coverage/lcov-report/pages/MidasDemoPage.tsx.html  |  226 [32m+++++[m
+ coverage/lcov-report/pages/index.html              |  116 [32m+++[m
+ coverage/lcov-report/services/index.html           |  116 [32m+++[m
+ .../{ => services}/lancamentoService.ts.html       |   60 [32m+[m[31m-[m
+ coverage/lcov.info                                 |  145 [32m++[m[31m-[m
+ dist/assets/image-KXEvpsYD.png                     |  Bin [31m0[m -> [32m128457[m bytes
+ dist/assets/index-BAOpDhp9.js                      |  433 [32m+++++++++[m
+ dist/assets/index-CUd4WbvN.css                     |    1 [32m+[m
+ dist/assets/index-C_TtDV-e.css                     |    1 [31m-[m
+ dist/assets/index-Cs09U9Hk.js                      |  463 [31m---------[m
+ dist/assets/xlsx-CkFp8p6R.js                       |  105 [32m++[m
+ dist/index.html                                    |    6 [32m+[m[31m-[m
+ image.png                                          |  Bin [31m0[m -> [32m128457[m bytes
+ layout_importacao_dados.xlsx                       |  Bin [31m0[m -> [32m5338[m bytes
+ package-lock.json                                  |  361 [32m++++++[m[31m-[m
+ package.json                                       |   10 [32m+[m[31m-[m
+ server.js                                          |  510 [32m++++++[m[31m----[m
+ src/app/App.tsx                                    |    4 [32m+[m[31m-[m
+ src/app/components/AnaliseIAProjecao.tsx           |   13 [32m+[m[31m-[m
+ src/app/pages/DashboardPage.tsx                    |   21 [32m+[m
+ src/app/pages/EmprestimosPage.tsx                  |    2 [32m+[m[31m-[m
+ src/app/pages/LancamentosPage.tsx                  |  120 [32m++[m[31m-[m
+ src/app/pages/LoginPage.tsx                        |  217 [32m+[m[31m----[m
+ src/app/pages/NovaRecorrenciaPage.tsx              |   18 [32m+[m
+ src/app/pages/ProjecoesPage.tsx                    |   87 [32m+[m[31m-[m
+ src/components/ExcelImportModal.tsx                |  290 [32m++++++[m
+ src/components/MidasAssistant.tsx                  | 1002 [32m++++++++++++++++++++[m
+ src/components/ui/button.tsx                       |   34 [32m+[m
+ src/routes/googleApisRoutes.ts                     |  485 [32m++++++++++[m
+ src/services/analiseIAService.ts                   |    5 [32m+[m[31m-[m
+ src/services/excelService.ts                       |  216 [32m+++++[m
+ src/services/googleApisService.ts                  |  726 [32m++++++++++++++[m
+ src/services/tiporecorrenciaService.ts             |    4 [32m+[m[31m-[m
+ temp_gemini_test.mjs                               |   44 [32m+[m
+ test-generative-api.js                             |   87 [32m++[m
+ 49 files changed, 9200 insertions(+), 938 deletions(-)
+
+[33mcommit c023671bbada0b2bf5862b7c87fb8c333e6ac496[m
+Author: GabrielOliveira92 <gabrieloliveira290792@gmail.com>
+Date:   Sat Jun 20 04:24:01 2026 -0300
+
+    4.0 com Assistente - IA Generativo e lançamento em massa
+
+ README.md | 87 [32m+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++[m
+ 1 file changed, 87 insertions(+)
+
+[33mcommit afb2a68f1d8891629ba4bc3a00d1930a971b9d48[m
+Author: GabrielOliveira92 <gabrieloliveira290792@gmail.com>
+Date:   Wed Jun 17 02:46:47 2026 -0300
+
+    fix(assistente): add Alpha Vantage intraday endpoint and documentation
+
+ MIDAS_SETUP.md |   9 [32m+++[m
+ server.js      | 170 [32m+++++++++++++++++++++++++++++++++++++++++++++++++++++++++[m
+ 2 files changed, 179 insertions(+)
+
+[33mcommit a890c9f9087efb53c9786a80239686151f5c7375[m
+Author: GabrielOliveira92 <gabrieloliveira290792@gmail.com>
+Date:   Wed Jun 17 02:08:32 2026 -0300
+
+    feat(google): add Google Translate/Vision proxy endpoints and helper scripts/docs
+
+ .env.example                 |  3 [32m+++[m
+ MIDAS_SETUP.md               | 10 [32m+++++++++[m
+ scripts/create-midas-env.ps1 |  5 [32m++++[m[31m-[m
+ scripts/test-google-apis.ps1 | 27 [32m+++++++++++++++++++++++++[m
+ server.js                    | 48 [32m++++++++++++++++++++++++++++++++++++++++++++[m
+ 5 files changed, 92 insertions(+), 1 deletion(-)
+
+[33mcommit 9dd6196256309cfc3c471f80b38295e10877eeeb[m
+Author: GabrielOliveira92 <gabrieloliveira290792@gmail.com>
+Date:   Wed Jun 17 02:04:06 2026 -0300
+
+    chore(midas): add .env.example and helper scripts to configure and test MIDAS integration
+
+ .env.example                 |  8 [32m++++++++[m
+ scripts/create-midas-env.ps1 | 19 [32m+++++++++++++++++++[m
+ scripts/test-midas.ps1       | 21 [32m+++++++++++++++++++++[m
+ 3 files changed, 48 insertions(+)
+
+[33mcommit a89a95ccb14f3f9c213d9cc7556ddaec42d34ae5[m
+Author: GabrielOliveira92 <gabrieloliveira290792@gmail.com>
+Date:   Wed Jun 17 02:00:28 2026 -0300
+
+    feat(midas): add chat proxy endpoint and frontend chat UI; docs
+
+ MIDAS_SETUP.md                 | 34 [32m++++++++++++++++++++++++++++++++++[m
+ server.js                      | 34 [32m++++++++++++++++++++++++++++++++++[m
+ src/components/MidasWidget.tsx | 38 [32m++++++++++++++++++++++++++++++++++++[m[31m--[m
+ 3 files changed, 104 insertions(+), 2 deletions(-)
+
+[33mcommit 726fdf9c58175ee8a9dab19d244a868e1a47104b[m
+Author: GabrielOliveira92 <gabrieloliveira290792@gmail.com>
+Date:   Wed Jun 17 01:57:26 2026 -0300
+
+    refactor(ui): remove Recorrencias screen from sidebar and add recurrence summary in Lancamentos
+
+ src/app/App.tsx                   |  2 [31m--[m
+ src/app/components/Sidebar.tsx    |  2 [32m+[m[31m-[m
+ src/app/pages/LancamentosPage.tsx | 47 [32m+++++++++++++++++++++++++++++++++++++++[m
+ 3 files changed, 48 insertions(+), 3 deletions(-)
+
+[33mcommit 77cfa28085fe5c75fe806bb7cf6bc2dc62818f3e[m
+Author: GabrielOliveira92 <gabrieloliveira290792@gmail.com>
+Date:   Wed Jun 17 01:54:58 2026 -0300
+
+    feat(midas): add profile endpoints and widget personalization; tests for lancamento CRUD
+
+ server.js                                    | 18 [32m+++++++++[m
+ src/__tests__/lancamentoService.crud.spec.ts | 28 [32m+++++++++++++[m
+ src/components/MidasWidget.tsx               | 59 [32m++++++++++++++++++++++++++++[m
+ 3 files changed, 105 insertions(+)
+
+[33mcommit 2b3cac6d4b418d21df7ef045c4a304844e2b7992[m
+Author: GabrielOliveira92 <gabrieloliveira290792@gmail.com>
+Date:   Wed Jun 17 01:53:13 2026 -0300
+
+    fix(midas): associate labels with inputs for testing
+
+ src/pages/MidasDemoPage.tsx | 8 [32m++++[m[31m----[m
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
+[33mcommit 72355dec867c6235c151e1b404ef611dcc838a74[m
+Author: GabrielOliveira92 <gabrieloliveira290792@gmail.com>
+Date:   Wed Jun 17 01:52:20 2026 -0300
+
+    feat(midas): add demo auth endpoint, Midas widget, demo page and tests
+
+ coverage/lcov-report/base.css                  |  224 [32m+++[m
+ coverage/lcov-report/block-navigation.js       |   87 [32m++[m
+ coverage/lcov-report/favicon.png               |  Bin [31m0[m -> [32m445[m bytes
+ coverage/lcov-report/index.html                |  116 [32m++[m
+ coverage/lcov-report/lancamentoService.ts.html |  253 [32m+++[m
+ coverage/lcov-report/prettify.css              |    1 [32m+[m
+ coverage/lcov-report/prettify.js               |    2 [32m+[m
+ coverage/lcov-report/sort-arrow-sprite.png     |  Bin [31m0[m -> [32m138[m bytes
+ coverage/lcov-report/sorter.js                 |  210 [32m+++[m
+ coverage/lcov.info                             |   43 [32m+[m
+ package-lock.json                              | 1962 [32m++++++[m[31m------------------[m
+ package.json                                   |   16 [32m+[m[31m-[m
+ server.js                                      |   12 [32m+[m
+ src/__tests__/Button.spec.tsx                  |    3 [32m+[m[31m-[m
+ src/__tests__/midasAuth.spec.tsx               |   31 [32m+[m
+ src/app/App.tsx                                |    2 [32m+[m
+ src/components/MidasWidget.tsx                 |   64 [32m+[m
+ src/pages/MidasDemoPage.tsx                    |   47 [32m+[m
+ vitest.config.ts                               |    2 [32m+[m[31m-[m
+ 19 files changed, 1551 insertions(+), 1524 deletions(-)
+
+[33mcommit 3249c83ecebdfe5b623a347d2d042508e4637246[m
+Author: GabrielOliveira92 <gabrieloliveira290792@gmail.com>
+Date:   Wed Jun 17 01:43:34 2026 -0300
+
+    chore(tests): add Vitest config, tests and test deps; setup testing
+
+ package-lock.json                       | 4193 [32m++++++++++++++++++++++++++++++[m[31m-[m
+ package.json                            |   10 [32m+[m[31m-[m
+ src/__tests__/Button.spec.tsx           |   21 [32m+[m
+ src/__tests__/lancamentoService.test.ts |   23 [32m+[m
+ src/setupTests.ts                       |    7 [32m+[m
+ vitest.config.ts                        |   13 [32m+[m
+ 6 files changed, 4133 insertions(+), 134 deletions(-)
+
+[33mcommit d2d1e752f720b4bf33422642c7a1d605d8ecacc1[m
+Author: GabrielOliveira92 <gabrieloliveira290792@gmail.com>
+Date:   Wed Jun 17 01:30:39 2026 -0300
+
+    IA
+
+ .env.example                                       |    4 [32m+[m
+ .gitignore                                         |  482 [32m++[m
+ APK_BUILD_GUIDE.md                                 |  227 [32m+[m
+ APK_READY.md                                       |  135 [32m+[m
+ ARCHITECTURE.md                                    |  386 [32m++[m
+ ATTRIBUTIONS.md                                    |    3 [32m+[m
+ FAQ.md                                             |  387 [32m++[m
+ NEXT_STEPS.md                                      |  325 [32m+[m
+ QUICK_START.md                                     |  172 [32m+[m
+ README.md                                          |  279 [32m+[m
+ SETUP.md                                           |  161 [32m+[m
+ android/.gitignore                                 |  101 [32m+[m
+ android/app/.gitignore                             |    2 [32m+[m
+ android/app/build.gradle                           |   54 [32m+[m
+ android/app/capacitor.build.gradle                 |   19 [32m+[m
+ android/app/proguard-rules.pro                     |   21 [32m+[m
+ .../myapp/ExampleInstrumentedTest.java             |   26 [32m+[m
+ android/app/src/main/AndroidManifest.xml           |   41 [32m+[m
+ android/app/src/main/ic_launcher-playstore.png     |  Bin [31m0[m -> [32m125662[m bytes
+ .../main/java/com/midas/finance/MainActivity.java  |    5 [32m+[m
+ .../app/src/main/res/drawable-land-hdpi/splash.png |  Bin [31m0[m -> [32m7705[m bytes
+ .../app/src/main/res/drawable-land-mdpi/splash.png |  Bin [31m0[m -> [32m4040[m bytes
+ .../src/main/res/drawable-land-xhdpi/splash.png    |  Bin [31m0[m -> [32m9251[m bytes
+ .../src/main/res/drawable-land-xxhdpi/splash.png   |  Bin [31m0[m -> [32m13984[m bytes
+ .../src/main/res/drawable-land-xxxhdpi/splash.png  |  Bin [31m0[m -> [32m17683[m bytes
+ .../app/src/main/res/drawable-port-hdpi/splash.png |  Bin [31m0[m -> [32m7934[m bytes
+ .../app/src/main/res/drawable-port-mdpi/splash.png |  Bin [31m0[m -> [32m4096[m bytes
+ .../src/main/res/drawable-port-xhdpi/splash.png    |  Bin [31m0[m -> [32m9875[m bytes
+ .../src/main/res/drawable-port-xxhdpi/splash.png   |  Bin [31m0[m -> [32m13346[m bytes
+ .../src/main/res/drawable-port-xxxhdpi/splash.png  |  Bin [31m0[m -> [32m17489[m bytes
+ .../main/res/drawable/ic_launcher_background.xml   |   93 [32m+[m
+ .../main/res/drawable/ic_launcher_foreground.xml   |   47 [32m+[m
+ android/app/src/main/res/drawable/splash.png       |  Bin [31m0[m -> [32m4040[m bytes
+ android/app/src/main/res/layout/activity_main.xml  |   12 [32m+[m
+ .../src/main/res/mipmap-anydpi-v26/ic_launcher.xml |   21 [32m+[m
+ .../res/mipmap-anydpi-v26/ic_launcher_round.xml    |   21 [32m+[m
+ .../app/src/main/res/mipmap-hdpi/ic_launcher.webp  |  Bin [31m0[m -> [32m2048[m bytes
+ .../res/mipmap-hdpi/ic_launcher_foreground.webp    |  Bin [31m0[m -> [32m5976[m bytes
+ .../main/res/mipmap-hdpi/ic_launcher_round.webp    |  Bin [31m0[m -> [32m3704[m bytes
+ .../app/src/main/res/mipmap-mdpi/ic_launcher.webp  |  Bin [31m0[m -> [32m1376[m bytes
+ .../res/mipmap-mdpi/ic_launcher_foreground.webp    |  Bin [31m0[m -> [32m3108[m bytes
+ .../main/res/mipmap-mdpi/ic_launcher_round.webp    |  Bin [31m0[m -> [32m2374[m bytes
+ .../app/src/main/res/mipmap-xhdpi/ic_launcher.webp |  Bin [31m0[m -> [32m2990[m bytes
+ .../res/mipmap-xhdpi/ic_launcher_foreground.webp   |  Bin [31m0[m -> [32m8544[m bytes
+ .../main/res/mipmap-xhdpi/ic_launcher_round.webp   |  Bin [31m0[m -> [32m5544[m bytes
+ .../src/main/res/mipmap-xxhdpi/ic_launcher.webp    |  Bin [31m0[m -> [32m5562[m bytes
+ .../res/mipmap-xxhdpi/ic_launcher_foreground.webp  |  Bin [31m0[m -> [32m15906[m bytes
+ .../main/res/mipmap-xxhdpi/ic_launcher_round.webp  |  Bin [31m0[m -> [32m10152[m bytes
+ .../src/main/res/mipmap-xxxhdpi/ic_launcher.webp   |  Bin [31m0[m -> [32m8958[m bytes
+ .../res/mipmap-xxxhdpi/ic_launcher_foreground.webp |  Bin [31m0[m -> [32m25804[m bytes
+ .../main/res/mipmap-xxxhdpi/ic_launcher_round.webp |  Bin [31m0[m -> [32m15520[m bytes
+ .../src/main/res/values/ic_launcher_background.xml |   19 [32m+[m
+ android/app/src/main/res/values/strings.xml        |    7 [32m+[m
+ android/app/src/main/res/values/styles.xml         |   22 [32m+[m
+ android/app/src/main/res/xml/file_paths.xml        |    5 [32m+[m
+ .../com/getcapacitor/myapp/ExampleUnitTest.java    |   18 [32m+[m
+ android/build.gradle                               |   40 [32m+[m
+ android/capacitor.settings.gradle                  |    3 [32m+[m
+ android/gradle.properties                          |   32 [32m+[m
+ android/gradle/gradle-daemon-jvm.properties        |   13 [32m+[m
+ android/gradle/wrapper/gradle-wrapper.jar          |  Bin [31m0[m -> [32m43764[m bytes
+ android/gradle/wrapper/gradle-wrapper.properties   |    7 [32m+[m
+ android/gradlew                                    |  251 [32m+[m
+ android/gradlew.bat                                |   94 [32m+[m
+ android/settings.gradle                            |    8 [32m+[m
+ android/variables.gradle                           |   16 [32m+[m
+ build-apk.ps1                                      |   98 [32m+[m
+ capacitor.config.json                              |   16 [32m+[m
+ dist/assets/index-C_TtDV-e.css                     |    1 [32m+[m
+ dist/assets/index-Cs09U9Hk.js                      |  463 [32m++[m
+ dist/image.png                                     |  Bin [31m0[m -> [32m128457[m bytes
+ dist/index.html                                    |   18 [32m+[m
+ guidelines/Guidelines.md                           |   61 [32m+[m
+ index.html                                         |   17 [32m+[m
+ package-lock.json                                  | 7070 [32m++++++++++++++++++++[m
+ package.json                                       |  103 [32m+[m
+ postcss.config.mjs                                 |   15 [32m+[m
+ public/image.png                                   |  Bin [31m0[m -> [32m128457[m bytes
+ server.js                                          |   42 [32m+[m
+ src/app/App.tsx                                    |   42 [32m+[m
+ src/app/components/AnaliseIAProjecao.tsx           |  203 [32m+[m
+ src/app/components/EmptyState.tsx                  |   36 [32m+[m
+ src/app/components/ErrorMessage.tsx                |   17 [32m+[m
+ src/app/components/Layout.tsx                      |   37 [32m+[m
+ src/app/components/LoadingSpinner.tsx              |   21 [32m+[m
+ src/app/components/ModuleGuard.tsx                 |   25 [32m+[m
+ src/app/components/Sidebar.tsx                     |   71 [32m+[m
+ src/app/components/StatCard.tsx                    |   44 [32m+[m
+ src/app/components/StatusBadge.tsx                 |   23 [32m+[m
+ src/app/components/Topbar.tsx                      |  107 [32m+[m
+ src/app/components/figma/ImageWithFallback.tsx     |   27 [32m+[m
+ src/app/components/ui/accordion.tsx                |   66 [32m+[m
+ src/app/components/ui/alert-dialog.tsx             |  157 [32m+[m
+ src/app/components/ui/alert.tsx                    |   66 [32m+[m
+ src/app/components/ui/aspect-ratio.tsx             |   11 [32m+[m
+ src/app/components/ui/avatar.tsx                   |   53 [32m+[m
+ src/app/components/ui/badge.tsx                    |   46 [32m+[m
+ src/app/components/ui/breadcrumb.tsx               |  109 [32m+[m
+ src/app/components/ui/button.tsx                   |   59 [32m+[m
+ src/app/components/ui/calendar.tsx                 |   75 [32m+[m
+ src/app/components/ui/card.tsx                     |   92 [32m+[m
+ src/app/components/ui/carousel.tsx                 |  241 [32m+[m
+ src/app/components/ui/chart.tsx                    |  353 [32m+[m
+ src/app/components/ui/checkbox.tsx                 |   32 [32m+[m
+ src/app/components/ui/collapsible.tsx              |   33 [32m+[m
+ src/app/components/ui/command.tsx                  |  177 [32m+[m
+ src/app/components/ui/context-menu.tsx             |  252 [32m+[m
+ src/app/components/ui/dialog.tsx                   |  137 [32m+[m
+ src/app/components/ui/drawer.tsx                   |  132 [32m+[m
+ src/app/components/ui/dropdown-menu.tsx            |  257 [32m+[m
+ src/app/components/ui/form.tsx                     |  168 [32m+[m
+ src/app/components/ui/hover-card.tsx               |   44 [32m+[m
+ src/app/components/ui/input-otp.tsx                |   77 [32m+[m
+ src/app/components/ui/input.tsx                    |   21 [32m+[m
+ src/app/components/ui/label.tsx                    |   24 [32m+[m
+ src/app/components/ui/menubar.tsx                  |  276 [32m+[m
+ src/app/components/ui/navigation-menu.tsx          |  168 [32m+[m
+ src/app/components/ui/pagination.tsx               |  127 [32m+[m
+ src/app/components/ui/popover.tsx                  |   48 [32m+[m
+ src/app/components/ui/progress.tsx                 |   31 [32m+[m
+ src/app/components/ui/radio-group.tsx              |   45 [32m+[m
+ src/app/components/ui/resizable.tsx                |   56 [32m+[m
+ src/app/components/ui/scroll-area.tsx              |   58 [32m+[m
+ src/app/components/ui/select.tsx                   |  189 [32m+[m
+ src/app/components/ui/separator.tsx                |   28 [32m+[m
+ src/app/components/ui/sheet.tsx                    |  139 [32m+[m
+ src/app/components/ui/sidebar.tsx                  |  726 [32m++[m
+ src/app/components/ui/skeleton.tsx                 |   13 [32m+[m
+ src/app/components/ui/slider.tsx                   |   63 [32m+[m
+ src/app/components/ui/sonner.tsx                   |   25 [32m+[m
+ src/app/components/ui/switch.tsx                   |   31 [32m+[m
+ src/app/components/ui/table.tsx                    |  116 [32m+[m
+ src/app/components/ui/tabs.tsx                     |   66 [32m+[m
+ src/app/components/ui/textarea.tsx                 |   18 [32m+[m
+ src/app/components/ui/toggle-group.tsx             |   73 [32m+[m
+ src/app/components/ui/toggle.tsx                   |   47 [32m+[m
+ src/app/components/ui/tooltip.tsx                  |   61 [32m+[m
+ src/app/components/ui/use-mobile.ts                |   21 [32m+[m
+ src/app/components/ui/utils.ts                     |    6 [32m+[m
+ src/app/pages/DashboardPage.tsx                    |  692 [32m++[m
+ src/app/pages/EmpresaPage.tsx                      |  863 [32m+++[m
+ src/app/pages/EmprestimosPage.tsx                  |  370 [32m+[m
+ src/app/pages/LancamentosPage.tsx                  |  346 [32m+[m
+ src/app/pages/LoginPage.tsx                        |  281 [32m+[m
+ src/app/pages/NovaProjecaoPage.tsx                 |  162 [32m+[m
+ src/app/pages/NovaRecorrenciaPage.tsx              |  261 [32m+[m
+ src/app/pages/NovoEmprestimoPage.tsx               |  232 [32m+[m
+ src/app/pages/NovoLancamentoPage.tsx               |  575 [32m++[m
+ src/app/pages/ProjecoesPage.tsx                    |  298 [32m+[m
+ src/app/pages/RecorrenciasPage.tsx                 |  897 [32m+++[m
+ src/app/pages/RegistrarPage.tsx                    |  118 [32m+[m
+ src/constants/index.ts                             |  135 [32m+[m
+ src/context/AuthContext.tsx                        |  106 [32m+[m
+ src/hooks/useDebounce.ts                           |   21 [32m+[m
+ src/hooks/useLocalStorage.ts                       |   43 [32m+[m
+ src/main.tsx                                       |    7 [32m+[m
+ src/services/analiseIAService.ts                   |   23 [32m+[m
+ src/services/api.ts                                |   79 [32m+[m
+ src/services/empresaService.ts                     |   37 [32m+[m
+ src/services/emprestimoService.ts                  |   36 [32m+[m
+ src/services/lancamentoService.ts                  |   56 [32m+[m
+ src/services/projecaoService.ts                    |   36 [32m+[m
+ src/services/recorrenciaService.ts                 |   36 [32m+[m
+ src/services/responsavelService.ts                 |   25 [32m+[m
+ src/services/tiporecorrenciaService.ts             |   29 [32m+[m
+ src/services/usuarioService.ts  
