@@ -232,8 +232,22 @@ export function RecorrenciasPage() {
 
   }, [recorrencias, filtroTipo]);
 
-  const pieData = useMemo(() => {
+  const recorrenciasSummary = useMemo(() => {
+    const filtered = recorrenciasFiltradas;
+    const total = filtered.length;
+    const receitas = filtered.filter(r => r.tipoLancamento === 0).length;
+    const despesas = filtered.filter(r => r.tipoLancamento === 1).length;
+    const valorTotal = filtered.reduce((sum, r) => sum + (r.valor || 0), 0);
 
+    return {
+      total,
+      receitas,
+      despesas,
+      valorTotal,
+    };
+  }, [recorrenciasFiltradas]);
+
+  const pieData = useMemo(() => {
     const receitas = recorrencias.filter(
       r => r.tipoLancamento === 0
     ).length;
@@ -252,7 +266,6 @@ export function RecorrenciasPage() {
         value: despesas
       }
     ];
-
   }, [recorrencias]);
 
   const chartData = useMemo(() => {
@@ -387,6 +400,25 @@ export function RecorrenciasPage() {
 
           </div>
 
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
+          <Card className="p-4">
+            <p className="text-sm text-gray-500">Recorrências</p>
+            <p className="text-3xl font-bold mt-2">{recorrenciasSummary.total}</p>
+          </Card>
+          <Card className="p-4">
+            <p className="text-sm text-gray-500">Receitas</p>
+            <p className="text-3xl font-bold mt-2">{recorrenciasSummary.receitas}</p>
+          </Card>
+          <Card className="p-4">
+            <p className="text-sm text-gray-500">Despesas</p>
+            <p className="text-3xl font-bold mt-2">{recorrenciasSummary.despesas}</p>
+          </Card>
+          <Card className="p-4">
+            <p className="text-sm text-gray-500">Valor total</p>
+            <p className="text-3xl font-bold mt-2">{formatCurrency(recorrenciasSummary.valorTotal)}</p>
+          </Card>
         </div>
 
         {/* DASH */}

@@ -3,11 +3,13 @@ import { useNavigate } from 'react-router';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, UserCircle2, Send, X, User } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { usuarioService } from '../services/usuarioService';
 
 const STORAGE_KEY = 'midas-assistant-profile';
 
 type LoginData = {
   nomeUsuario: string;
+  emailUsuario?: string;
   PasswordString: string;
 };
 
@@ -403,7 +405,10 @@ export function MidasAssistant() {
   const handleLoginSubmit = async () => {
     setLoading(true);
     try {
-      await login(loginData);
+      await login({
+        nomeUsuario: loginData.nomeUsuario,
+        PasswordString: loginData.PasswordString,
+      });
       addMessage({
         id: Date.now() + 2,
         author: 'midas',
@@ -453,23 +458,18 @@ export function MidasAssistant() {
     setLoading(true);
     try {
       // Call registration endpoint
-      const res = await fetch('/api/Usuario/Registrar', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          nomeUsuario: registerData.nomeUsuario,
-          email: registerData.email,
-          PasswordString: registerData.PasswordString,
-        }),
+      const data = await usuarioService.registrar({
+        nomeUsuario: registerData.nomeUsuario,
+        emailUsuario: registerData.email,
+        email: registerData.email,
+        PasswordString: registerData.PasswordString,
       });
 
-      const data = await res.json();
-
-      if (!res.ok) {
+      if (!data) {
         addMessage({
           id: Date.now(),
           author: 'midas',
-          text: `Erro ao criar a conta: ${data.error || 'Tente novamente.'}`,
+          text: 'Erro ao criar a conta. Tente novamente.',
         });
         setLoading(false);
         return;
@@ -484,6 +484,7 @@ export function MidasAssistant() {
       // Auto-login after registration
       await login({
         nomeUsuario: registerData.nomeUsuario,
+        emailUsuario: registerData.email,
         PasswordString: registerData.PasswordString,
       });
 

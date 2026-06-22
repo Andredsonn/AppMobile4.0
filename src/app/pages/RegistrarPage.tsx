@@ -11,6 +11,7 @@ export function RegisterPage() {
   const navigate = useNavigate();
 
   const [nomeUsuario, setNomeUsuario] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -36,7 +37,9 @@ export function RegisterPage() {
     try {
       await usuarioService.registrar({
         nomeUsuario,
-        PasswordString: password
+        emailUsuario: email,
+        email,
+        PasswordString: password,
       });
 
       toast.success(
@@ -72,6 +75,16 @@ export function RegisterPage() {
               <Input
                 value={nomeUsuario}
                 onChange={(e) => setNomeUsuario(e.target.value)}
+                required
+              />
+            </div>
+
+            <div>
+              <Label>E-mail</Label>
+              <Input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 required
               />
             </div>

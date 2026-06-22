@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router';
 import { Layout } from '../components/Layout';
 import { LoadingSpinner } from '../components/LoadingSpinner';
@@ -227,6 +227,23 @@ export function LancamentosPage() {
     return new Date(dateStr).toLocaleDateString('pt-BR');
   };
 
+  const lancamentosSummary = useMemo(() => {
+    const receitas = filteredLancamentos
+      .filter(lanc => lanc.tipoLancamento === 0)
+      .reduce((sum, lanc) => sum + (lanc.valor || 0), 0);
+
+    const despesas = filteredLancamentos
+      .filter(lanc => lanc.tipoLancamento === 1)
+      .reduce((sum, lanc) => sum + (lanc.valor || 0), 0);
+
+    return {
+      total: filteredLancamentos.length,
+      totalReceitas: receitas,
+      totalDespesas: despesas,
+      saldo: receitas - despesas,
+    };
+  }, [filteredLancamentos]);
+
   const getTipoLabel = (tipo: number | string) => {
     if (tipo === 0 || tipo === 'Receita') return 'Receita';
     if (tipo === 1 || tipo === 'Despesa') return 'Despesa';
@@ -278,7 +295,28 @@ export function LancamentosPage() {
           </div>
         </div>
 
-        {/* Recorrências summary */}
+        <div className="grid gap-4 lg:grid-cols-4">
+        <Card className="p-4">
+          <p className="text-sm text-gray-500">Lançamentos</p>
+          <p className="text-3xl font-bold mt-2">{lancamentosSummary.total}</p>
+        </Card>
+        <Card className="p-4">
+          <p className="text-sm text-gray-500">Total Receitas</p>
+          <p className="text-3xl font-bold mt-2">{formatCurrency(lancamentosSummary.totalReceitas)}</p>
+        </Card>
+        <Card className="p-4">
+          <p className="text-sm text-gray-500">Total Despesas</p>
+          <p className="text-3xl font-bold mt-2">{formatCurrency(lancamentosSummary.totalDespesas)}</p>
+        </Card>
+        <Card className="p-4">
+          <p className="text-sm text-gray-500">Saldo</p>
+          <p className={`text-3xl font-bold mt-2 ${lancamentosSummary.saldo >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+            {formatCurrency(lancamentosSummary.saldo)}
+          </p>
+        </Card>
+      </div>
+
+      {/* Recorrências summary */}
         <Card className="p-4">
           <div className="flex items-center justify-between">
             <div>

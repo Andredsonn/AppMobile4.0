@@ -1,11 +1,13 @@
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { createProxyMiddleware } from 'http-proxy-middleware';
 import dotenv from 'dotenv';
 import axios from 'axios';
 import { GoogleAuth, JWT } from 'google-auth-library';
+import { setupGoogleApisRoutes } from './src/routes/googleApisRoutes.js';
 
 
 dotenv.config();
@@ -13,14 +15,28 @@ dotenv.config();
 const ALPHA_VANTAGE_API_KEY = process.env.ALPHA_VANTAGE_API_KEY;
 const GOOGLE_GENERATIVE_API_KEY = process.env.GOOGLE_GENERATIVE_API_KEY;
 const GOOGLE_SERVICE_ACCOUNT_JSON = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
-const GOOGLE_SERVICE_ACCOUNT_KEYFILE = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+const GOOGLE_SERVICE_ACCOUNT_KEYFILE = process.env.GOOGLE_SERVICE_ACCOUNT_KEYFILE || process.env.GOOGLE_APPLICATION_CREDENTIALS;
 
 let googleServiceAccountCredentials = null;
+
+// First, try to load from JSON env var
 if (GOOGLE_SERVICE_ACCOUNT_JSON) {
   try {
     googleServiceAccountCredentials = JSON.parse(GOOGLE_SERVICE_ACCOUNT_JSON.replace(/\\n/g, '\n'));
+    console.log('✅ Service account loaded from GOOGLE_SERVICE_ACCOUNT_JSON');
   } catch (error) {
-    console.error('Invalid GOOGLE_SERVICE_ACCOUNT_JSON:', error);
+    console.error('Invalid GOOGLE_SERVICE_ACCOUNT_JSON:', error.message);
+  }
+}
+
+// Then try to load from file if not loaded from env var
+if (!googleServiceAccountCredentials && GOOGLE_SERVICE_ACCOUNT_KEYFILE) {
+  try {
+    const keyfileContent = fs.readFileSync(GOOGLE_SERVICE_ACCOUNT_KEYFILE, 'utf8');
+    googleServiceAccountCredentials = JSON.parse(keyfileContent);
+    console.log('✅ Service account loaded from file:', GOOGLE_SERVICE_ACCOUNT_KEYFILE);
+  } catch (error) {
+    console.error('Invalid service account keyfile:', error.message);
   }
 }
 
@@ -62,6 +78,66 @@ async function getGoogleGenerativeAccessToken() {
   return null;
 }
 
+// Fallback: call Google Generative AI
+async function callGoogleGenerativeModel(prompt, model = 'gemini-2.0-flash') {
+  const useServiceAccount = Boolean(googleServiceAccountCredentials || GOOGLE_SERVICE_ACCOUNT_KEYFILE)
+  
+  if (!GOOGLE_GENERATIVE_API_KEY && !useServiceAccount) {
+    throw new Error('GOOGLE_GENERATIVE_API_KEY or service account not configured')
+  }
+
+  let accessToken = null
+  if (useServiceAccount) {
+    accessToken = await getGoogleGenerativeAccessToken()
+  }
+
+  const headers = { 'Content-Type': 'application/json' }
+  const endpoints = ['generateContent', 'generateText']
+
+  for (const endpoint of endpoints) {
+    try {
+      const apiKeySuffix = !useServiceAccount && GOOGLE_GENERATIVE_API_KEY ? `?key=${GOOGLE_GENERATIVE_API_KEY}` : ''
+      const url = `https://generativelanguage.googleapis.com/v1/models/${model}:${endpoint}${apiKeySuffix}`
+      const requestHeaders = { ...headers }
+      
+      if (useServiceAccount && accessToken) {
+        requestHeaders.Authorization = `Bearer ${accessToken}`
+      }
+
+      const payload = endpoint === 'generateText'
+        ? { prompt: { text: `Responda em Português do Brasil. ${prompt}` } }
+        : {
+          contents: [
+            { parts: [{ text: 'Responda em Português do Brasil. Sempre responda em português, de forma clara e direta.' }] },
+            { parts: [{ text: prompt }] },
+          ],
+        }
+
+      const r = await axios.post(url, payload, { headers: requestHeaders, timeout: 10000 })
+      const text = extractGenerativeResponseText(r.data)
+      if (text) return String(text).trim()
+    } catch (err) {
+      const resp = err?.response?.data || null
+      const msg = String(resp?.error?.message || err?.message || '')
+      const isNotFound = resp?.error?.code === 404 || msg.toLowerCase().includes('not found')
+      if (isNotFound) continue
+      throw err
+    }
+  }
+
+  throw new Error('No valid endpoint returned a response')
+}
+
+function extractGenerativeResponseText(data) {
+  const candidate = data?.candidates?.[0]
+  if (candidate) {
+    const content = Array.isArray(candidate?.content) ? candidate.content[0] : candidate?.content
+    const text = content?.text || content?.parts?.[0]?.text || candidate?.text || candidate?.output
+    return String(text || data?.output || data?.text || '').trim() || null
+  }
+  return String(data?.output || data?.text || '').trim() || null
+}
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const app = express();
@@ -69,6 +145,9 @@ const port = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
+
+// Registrar rotas das Google APIs
+setupGoogleApisRoutes(app, googleAuth);
 
 // Demo auth endpoint for local testing (username/password demo)
 const DEMO_USER = process.env.DEMO_USER || 'Admin'
@@ -231,7 +310,6 @@ app.post('/api/midas/chat', async (req, res) => {
 
 app.post('/assistente', async (req, res) => {
   const { pergunta, model: requestedModel, permissoes } = req.body || {}
-  const lower = String(pergunta || '').toLowerCase()
 
   if (!pergunta) {
     return res.json({ reply: 'Envie sua pergunta no corpo da requisição.' })
@@ -259,166 +337,64 @@ app.post('/assistente', async (req, res) => {
     }
   }
 
-  if (!pergunta) {
-    return res.json({ reply: 'Envie sua pergunta no corpo da requisição.' })
-  }
-
   try {
     const useServiceAccount = Boolean(googleServiceAccountCredentials || GOOGLE_SERVICE_ACCOUNT_KEYFILE)
+    
     if (!GOOGLE_GENERATIVE_API_KEY && !useServiceAccount) {
-      return res.json({ reply: 'Desculpe, não consigo acessar o assistente de IA agora. Você ainda pode usar o sistema normalmente.', fallback: true })
+      return res.json({ reply: 'Desculpe, o assistente não está configurado. Verifique as credenciais do Google.', fallback: true })
     }
 
-    const modelsToTry = [
-      'gemini-2.5-pro',
-      'gemini-2.5-flash',
-      'gemini-2.0-flash'
-    ]
+    // Try Google Generative AI models in order
+    const modelsToTry = requestedModel 
+      ? [requestedModel, 'gemini-2.0-flash', 'gemini-2.5-pro']
+      : ['gemini-2.0-flash', 'gemini-2.5-pro', 'gemini-2.5-flash']
 
-    const headers = { 'Content-Type': 'application/json' }
-    let accessToken = null
-    if (useServiceAccount) {
-      accessToken = await getGoogleGenerativeAccessToken()
-      if (!accessToken && !GOOGLE_GENERATIVE_API_KEY) {
-        return res.json({ reply: 'Desculpe, não consigo acessar o assistente de IA agora. Você ainda pode usar o sistema normalmente.', fallback: true })
-      }
-    }
-
-    const authModes = []
-    if (useServiceAccount && accessToken) {
-      authModes.push('serviceAccount')
-    }
-    if (GOOGLE_GENERATIVE_API_KEY) {
-      authModes.push('apiKey')
-    }
-    if (authModes.length === 0) {
-      return res.json({ reply: 'Desculpe, não consigo acessar o assistente de IA agora. Você ainda pode usar o sistema normalmente.', fallback: true })
-    }
-
-    const tryOrder = requestedModel ? [requestedModel, ...modelsToTry.filter(m => m !== requestedModel)] : modelsToTry
-
-    async function callGoogleModel(model, authMode) {
-      const endpoints = ['generateContent', 'generateText']
-      let lastError = null
-
-      for (const endpoint of endpoints) {
-        try {
-          const apiKeySuffix = authMode === 'apiKey' ? `?key=${GOOGLE_GENERATIVE_API_KEY}` : ''
-          const url = `https://generativelanguage.googleapis.com/v1/models/${model}:${endpoint}${apiKeySuffix}`
-          const requestHeaders = { ...headers }
-          if (authMode === 'serviceAccount') {
-            requestHeaders.Authorization = `Bearer ${accessToken}`
-          }
-          const payload = endpoint === 'generateText'
-            ? { prompt: { text: `Responda em Português do Brasil. ${enrichedPrompt}` } }
-            : {
-              contents: [
-                { parts: [{ text: 'Responda em Português do Brasil. Sempre responda em português, de forma clara e direta.' }] },
-                { parts: [{ text: enrichedPrompt }] },
-              ],
-            }
-
-          const r = await axios.post(url, payload, { headers: requestHeaders, timeout: 10000 })
-          const output = extractGenerativeResponseText(r.data)
-          return { output, raw: r.data }
-        } catch (err) {
-          lastError = err
-          const resp = err?.response?.data || null
-          const msg = String(resp?.error?.message || err?.message || '')
-          const isNotFound = resp?.error?.code === 404 || msg.toLowerCase().includes('not found')
-          if (isNotFound) {
-            continue
-          }
-          throw err
-        }
-      }
-
-      throw lastError
-    }
-
-    function extractGenerativeResponseText(data) {
-      const candidate = data?.candidates?.[0]
-      if (candidate) {
-        const content = Array.isArray(candidate?.content) ? candidate.content[0] : candidate?.content
-        const text = content?.text || content?.parts?.[0]?.text || candidate?.text || candidate?.output
-        return String(text || data?.output || data?.text || '').trim() || null
-      }
-      return String(data?.output || data?.text || '').trim() || null
-    }
-
-    let sawQuotaError = false
-    let sawInvalidKey = false
-    for (const authMode of authModes) {
-      for (let i = 0; i < tryOrder.length; i++) {
-        const model = tryOrder[i]
-      generativeMetrics.totalAttempts = (generativeMetrics.totalAttempts || 0) + 1
-      generativeMetrics.attempts[model] = (generativeMetrics.attempts[model] || 0) + 1
-
+    for (const model of modelsToTry) {
       try {
-        const { output, raw } = await callGoogleModel(model, authMode)
-        if (output) {
-          return res.json({ reply: String(output) })
+        console.log(`[Assistente] Tentando Google ${model}`)
+        const reply = await callGoogleGenerativeModel(enrichedPrompt, model)
+        if (reply) {
+          console.log(`[Assistente] Sucesso com Google ${model}`)
+          return res.json({ reply, source: 'google_generative', model })
         }
       } catch (err) {
         const resp = err?.response?.data || null
         const msg = String(resp?.error?.message || err?.message || '')
         const status = err?.response?.status
-        const isQuota = status === 429 || msg.toLowerCase().includes('quota') || msg.toLowerCase().includes('rate limit') || msg.toLowerCase().includes('limit: 0')
-        const isInvalidKey = msg.toLowerCase().includes('api key not valid') || msg.toLowerCase().includes('permission')
-        const isNotFound = status === 404 || msg.toLowerCase().includes('not found')
-        const isTransient = [429, 500, 502, 503, 504].includes(status) || /high demand|temporarily unavailable|unavailable|timeout/i.test(msg)
 
-        console.warn('Generative model attempt failed', { model, status, message: msg })
+        console.warn(`[Assistente] Google ${model} falhou com status ${status}: ${msg}`)
 
-        if (isQuota) {
-          sawQuotaError = true
-          generativeMetrics.quotaErrors[model] = (generativeMetrics.quotaErrors[model] || 0) + 1
-        }
-        if (isInvalidKey) {
-          sawInvalidKey = true
-        }
-
-        if (requestedModel && requestedModel !== model) {
-          const key = `${requestedModel}->${model}`
-          generativeMetrics.fallbacks[key] = (generativeMetrics.fallbacks[key] || 0) + 1
-        } else if (i > 0) {
-          const prev = tryOrder[i - 1]
-          const key = `${prev}->${model}`
-          generativeMetrics.fallbacks[key] = (generativeMetrics.fallbacks[key] || 0) + 1
-        }
-
-        if (isInvalidKey) {
-          return res.json({ reply: 'O assistente de IA não está disponível porque a chave gerada é inválida ou sem permissão.', fallback: true, invalidKey: true })
-        }
-
-        if (isQuota || isNotFound || isTransient) {
+        // Se é erro de modelo não encontrado, tenta o próximo
+        if (status === 404 || msg.includes('not found')) {
           continue
         }
 
-        console.error('Generative API error while calling model', model, resp || msg)
-        return res.json({ reply: 'Erro ao consultar o assistente. Tente novamente mais tarde.', fallback: true })
+        // Se é erro de quota/rate limit, tenta o próximo
+        if (status === 429 || msg.includes('quota') || msg.includes('rate limit')) {
+          continue
+        }
+
+        // Para outros erros, retorna erro
+        return res.json({ 
+          reply: `Erro ao consultar Google Generative API: ${msg}`, 
+          fallback: true, 
+          error: msg 
+        })
       }
     }
-    }
 
-    if (sawInvalidKey) {
-      return res.json({ reply: 'O assistente de IA não está disponível porque a chave gerada é inválida ou sem permissão.', fallback: true, invalidKey: true })
-    }
-    if (sawQuotaError) {
-      return res.json({ reply: 'Desculpe, o assistente está sem cota nos modelos disponíveis no momento. Tente novamente mais tarde.', fallback: true })
-    }
-    return res.json({ reply: 'Desculpe, o assistente não conseguiu responder no momento. Tente novamente mais tarde.', fallback: true })
+    // Se chegou aqui, nenhum modelo respondeu
+    return res.json({ 
+      reply: 'Desculpe, o assistente não conseguiu responder no momento. Tente novamente mais tarde.', 
+      fallback: true 
+    })
   } catch (error) {
-    const responseData = error?.response?.data || null
-    const isInvalidKey = responseData?.error?.message && String(responseData.error.message).toLowerCase().includes('api key not valid')
-
-    if (isInvalidKey) {
-      console.error('Generative API invalid key', responseData)
-      return res.json({ reply: 'O assistente de IA não está disponível porque a chave gerada é inválida. Continue usando o sistema normalmente e validaremos a chave depois.', fallback: true, invalidKey: true })
-    }
-
-    console.error('Generative API error', responseData || error.message)
-    return res.json({ reply: 'Erro ao consultar o assistente. Tente novamente mais tarde.', fallback: true })
+    console.error(`[Assistente] Erro inesperado:`, error.message)
+    return res.json({ 
+      reply: 'Erro ao consultar o assistente. Tente novamente mais tarde.', 
+      fallback: true,
+      error: error.message
+    })
   }
 })
 

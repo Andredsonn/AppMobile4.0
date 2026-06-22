@@ -1,0 +1,41 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Teste Assistente</title>
+  <style>body{font-family:Arial;padding:20px}textarea{width:100%;height:120px}#reply{white-space:pre-wrap;background:#f6f6f6;padding:10px;margin-top:10px}</style>
+</head>
+<body>
+  <h2>Teste /assistente</h2>
+  <label>Pergunta:</label>
+  <textarea id="question">Olá, qual o saldo previsto para este mês?</textarea>
+  <br/>
+  <label>Modelo (opcional):</label>
+  <input id="model" placeholder="gpt-3.5-turbo or gemini-2.5-pro" style="width:100%" />
+  <br/><br/>
+  <button id="send">Enviar</button>
+  <div id="status"></div>
+  <h3>Resposta</h3>
+  <div id="reply">—</div>
+
+  <script>
+    document.getElementById('send').addEventListener('click', async () => {
+      const q = document.getElementById('question').value;
+      const model = document.getElementById('model').value || undefined;
+      document.getElementById('status').textContent = 'Enviando...';
+      try {
+        const res = await fetch('http://localhost:3000/assistente', {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ pergunta: q, model })
+        });
+        const data = await res.json();
+        document.getElementById('reply').textContent = JSON.stringify(data, null, 2);
+        document.getElementById('status').textContent = `HTTP ${res.status}`;
+      } catch (err) {
+        document.getElementById('status').textContent = 'Erro: ' + err.message;
+      }
+    });
+  </script>
+</body>
+</html>
